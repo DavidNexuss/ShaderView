@@ -53,4 +53,4 @@ void InotifyHandler::query_events()
 
 }
 InotifyHandler::InotifyHandler(const char* p_file_path) : 
-    file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,*this) { }
+    file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,this) { }
