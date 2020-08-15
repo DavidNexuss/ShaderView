@@ -18,6 +18,7 @@ float delta = 0.01f;
 
 GLuint iResolution;
 float resolution[2];
+float mouse_position[2];
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
 
@@ -32,10 +33,9 @@ void window_size_callback(GLFWwindow* window,int width,int height)
 GLuint iMouse;
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    static float position[2];
-    position[0] = xpos / resolution[0] - 0.5f;
-    position[1] = ypos / resolution[1] - 0.5f;
-    glUniform2fv(iMouse,1,position);
+    mouse_position[0] = xpos / resolution[0] - 0.5f;
+    mouse_position[1] = ypos / resolution[1] - 0.5f;
+    glUniform2fv(iMouse,1,mouse_position);
 
 }
 
@@ -92,7 +92,8 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,InotifyHandler
 
     glUseProgram( programID );
 
-    glUniform2fv(iResolution,1,resolution);
+    glUniform2fv(iResolution,1,resolution); //TODO: Refactor duplicated code
+    glUniform2fv(iMouse,1,mouse_position);
     glViewport(0, 0, resolution[0], resolution[1]);
 
     do{

@@ -12,4 +12,5 @@ class InotifyHandler
     public:
     bool reload_shader;
     InotifyHandler(const char* file_path);
+    ~InotifyHandler();
 };
