@@ -5,8 +5,10 @@ using namespace std;
 
 const int WIDTH = 800;
 const int HEIGHT = 450;
+const float SCROLL_FACTOR = 0.05f;
 
 float delta = 0.01f;
+
 //*** Input callbacks ***/
 
 GLuint iResolution;
@@ -34,7 +36,7 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    delta += yoffset * 0.05f;
+    delta += yoffset * SCROLL_FACTOR;
 }
 
 /** Screen mesh **/

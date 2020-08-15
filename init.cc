@@ -1,12 +1,13 @@
-#include <cstdio>
+#include <iostream>
 #include "init.hh"
+using namespace std;
 
 int initialize_GLFW()
 {
     glewExperimental = true; // Needed for core profile
     if( !glfwInit() )
     {
-        fprintf( stderr, "Failed to initialize GLFW\n" );
+        cerr << "Failed to initialize GLFW" << endl;
         return 1;
     }
 
@@ -23,7 +24,7 @@ int initialize_window(GLFWwindow* & window,int width,int height)
     // Open a window and create its OpenGL context
     window = glfwCreateWindow( width, height, "Shader Viewer", NULL, NULL);
     if( window == NULL ){
-        fprintf( stderr, "Failed to open GLFW window.");
+        cerr << "Failed to open GLFW window." << endl;
         return 1;
     }
 
@@ -36,7 +37,7 @@ int initialize_GLEW(GLFWwindow* window)
     glfwMakeContextCurrent(window); // Initialize GLEW
     glewExperimental=true; // Needed in core profile
     if (glewInit() != GLEW_OK) {
-        fprintf(stderr, "Failed to initialize GLEW\n");
+        cerr << "Failed to initialize GLEW" << endl;
         return 1;
     }
 

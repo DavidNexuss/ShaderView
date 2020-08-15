@@ -2,9 +2,9 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <stdio.h>
-#include <stdlib.h>
 #include "util.hh"
+
+using namespace std;
 
 GLuint LoadShaders(const char * fragment_file_path){
 
@@ -12,7 +12,24 @@ GLuint LoadShaders(const char * fragment_file_path){
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
-	static std::string VertexShaderCode = "#version 330 core \n \
+	// Read the Fragment Shader code from the file
+	string FragmentShaderCode;
+	ifstream FragmentShaderStream;
+    FragmentShaderStream.open(fragment_file_path);
+	if(FragmentShaderStream.is_open()){
+		stringstream sstr;
+		sstr << FragmentShaderStream.rdbuf();
+		FragmentShaderCode = sstr.str();
+		FragmentShaderStream.close();
+	}else{
+        cerr << "Impossible to open" << fragment_file_path << endl;
+        return 1;
+    }
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+	
+    static const char* VertexSourcePointer = "#version 330 core \n \
     layout(location = 0) in vec3 vertexPosition_modelspace; \n \
     void main() \n \
     { \n \
@@ -20,28 +37,6 @@ GLuint LoadShaders(const char * fragment_file_path){
         gl_Position.w = 1.0; \n \
     } \n";
 
-	// Read the Fragment Shader code from the file
-	std::string FragmentShaderCode;
-	std::ifstream FragmentShaderStream;
-    FragmentShaderStream.open(fragment_file_path);
-	if(FragmentShaderStream.is_open()){
-		std::stringstream sstr;
-		sstr << FragmentShaderStream.rdbuf();
-		FragmentShaderCode = sstr.str();
-		FragmentShaderStream.close();
-	}else{
-        printf("Impossible to open %s\n",fragment_file_path);
-        getchar();
-        return 0;
-    }
-
-	GLint Result = GL_FALSE;
-	int InfoLogLength;
-
-	// Compile Vertex Shader
-	//printf("Compiling shader : %s\n", vertex_file_path);
-	
-    char const * VertexSourcePointer = VertexShaderCode.c_str();
 	glShaderSource(VertexShaderID, 1, &VertexSourcePointer , NULL);
 	glCompileShader(VertexShaderID);
 
@@ -82,7 +77,7 @@ GLuint LoadShaders(const char * fragment_file_path){
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if ( InfoLogLength > 0 ){
-		std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+		vector<char> ProgramErrorMessage(InfoLogLength+1);
 		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
 		printf("%s\n", &ProgramErrorMessage[0]);
         return 0;
