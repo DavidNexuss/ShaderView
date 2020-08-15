@@ -95,8 +95,8 @@ int main(int argc, char *argv[])
 
     if (argc > 1 and string(argv[1]) == "--help")
     {
-        cout << "Usage: " << argv[0] << " [fragment_shader_path] [vertex_shader_path]" << endl;
-        cout << "If a shader file is not specified, the program will search for fragment.glsl and vertex.glsl" << endl;
+        cout << "Usage: " << argv[0] << " [fragment_shader_path]" << endl;
+        cout << "If a shader file is not specified, the program will search for fragment.glsl" << endl;
         cout << "in the current directory as its default shaders" << endl << endl;
 
         cout << "Supported uniforms: iResolution, iTime and iMouse" << endl;
@@ -132,9 +132,8 @@ int main(int argc, char *argv[])
     
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
-    const char* vertex_shader_path   = argc > 2 ? argv[2] : "vertex.glsl";
 
-    GLuint programID = LoadShaders(vertex_shader_path,fragment_shader_path);
+    GLuint programID = LoadShaders(fragment_shader_path);
     if (programID == 0)
     {
         cerr << "Error loading shaders." << endl;

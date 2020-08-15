@@ -6,26 +6,19 @@
 #include <stdlib.h>
 #include "util.hh"
 
-GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path){
+GLuint LoadShaders(const char * fragment_file_path){
 
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
-	// Read the Vertex Shader code from the file
-	std::string VertexShaderCode;
-	std::ifstream VertexShaderStream;
-    VertexShaderStream.open(vertex_file_path);
-	if(VertexShaderStream.is_open()){
-		std::stringstream sstr;
-		sstr << VertexShaderStream.rdbuf();
-		VertexShaderCode = sstr.str();
-		VertexShaderStream.close();
-	}else{
-		printf("Impossible to open %s\n", vertex_file_path);
-		getchar();
-		return 0;
-	}
+	static std::string VertexShaderCode = "#version 330 core \n \
+    layout(location = 0) in vec3 vertexPosition_modelspace; \n \
+    void main() \n \
+    { \n \
+        gl_Position.xyz = vertexPosition_modelspace; \n \
+        gl_Position.w = 1.0; \n \
+    } \n";
 
 	// Read the Fragment Shader code from the file
 	std::string FragmentShaderCode;
