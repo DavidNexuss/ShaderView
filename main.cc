@@ -2,6 +2,10 @@
 #include "init.hh"
 
 using namespace std;
+
+const int WIDTH = 800;
+const int HEIGHT = 450;
+
 float delta = 0.01f;
 //*** Input callbacks ***/
 
@@ -13,6 +17,9 @@ void window_size_callback(GLFWwindow* window,int width,int height)
     resolution[0] = width;
     resolution[1] = height;
     glUniform2fv(iResolution,1,resolution);
+
+    glViewport(0, 0, width, height);
+
 }
 
 GLuint iMouse;
@@ -105,7 +112,7 @@ int main(int argc, char *argv[])
     }
 
     GLFWwindow* window;
-    int width = 1024, height = 768;
+    int width = WIDTH, height = HEIGHT;
 
     //Initialize every 
     if (initialize_GLFW() or initialize_window(window,width,height) or initialize_GLEW(window))
