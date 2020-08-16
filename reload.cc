@@ -13,7 +13,6 @@ bool look_for_events = true;
 
 void InotifyHandler::query_events()
 {
-    int inotifyFd,wd;
     inotifyFd = inotify_init();
     if (inotifyFd < 0)
     {
@@ -38,7 +37,7 @@ void InotifyHandler::query_events()
                 reload_shader = true;
             }
             /*
-             printf("mask = ");
+            printf("mask = ");
             if (event->mask & IN_ACCESS)        printf("IN_ACCESS ");
             if (event->mask & IN_ATTRIB)        printf("IN_ATTRIB ");
             if (event->mask & IN_CLOSE_NOWRITE) printf("IN_CLOSE_NOWRITE ");
@@ -55,7 +54,8 @@ void InotifyHandler::query_events()
             if (event->mask & IN_OPEN)          printf("IN_OPEN ");
             if (event->mask & IN_Q_OVERFLOW)    printf("IN_Q_OVERFLOW ");
             if (event->mask & IN_UNMOUNT)       printf("IN_UNMOUNT ");
-            cout << event->mask; */
+            cout << endl;  */
+
             p+= sizeof(struct inotify_event) + event->len;
         }
     }
@@ -65,5 +65,7 @@ InotifyHandler::InotifyHandler(const char* p_file_path) :
     file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,this) { }
 InotifyHandler::~InotifyHandler()
 {
-    inotify_thread.detach();
+    look_for_events = false;
+    inotify_rm_watch(inotifyFd,wd);
+    inotify_thread.join();
 }
