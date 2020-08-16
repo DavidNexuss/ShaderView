@@ -1,5 +1,8 @@
 #include <iostream>
+#include <csignal>
+
 #include "init.hh"
+#include "reload.hh"
 
 using namespace std;
 
@@ -7,19 +10,21 @@ const int WIDTH = 800;
 const int HEIGHT = 450;
 const float SCROLL_FACTOR = 0.05f;
 
+float g_time = 0.0f;
 float delta = 0.01f;
 
-//*** Input callbacks ***/
+/*** Input callbacks ***/
 
 GLuint iResolution;
 float resolution[2];
+float mouse_position[2];
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
 
     resolution[0] = width;
     resolution[1] = height;
-    glUniform2fv(iResolution,1,resolution);
 
+    glUniform2fv(iResolution,1,resolution);
     glViewport(0, 0, width, height);
 
 }
@@ -27,10 +32,9 @@ void window_size_callback(GLFWwindow* window,int width,int height)
 GLuint iMouse;
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    static float position[2];
-    position[0] = xpos / resolution[0] - 0.5f;
-    position[1] = ypos / resolution[1] - 0.5f;
-    glUniform2fv(iMouse,1,position);
+    mouse_position[0] = xpos / resolution[0] - 0.5f;
+    mouse_position[1] = ypos / resolution[1] - 0.5f;
+    glUniform2fv(iMouse,1,mouse_position);
 
 }
 
@@ -51,8 +55,15 @@ static const GLfloat g_vertex_buffer_data[] = {
     1.0f,-1.0f,0.0f,
 };
 
-void draw_loop(GLFWwindow* window,GLuint programID)
+int draw_loop(GLFWwindow* window,const char* fragment_shader_path,InotifyHandler& handler)
 {
+    GLuint programID = LoadShaders(fragment_shader_path);
+    if (programID == 0)
+    {
+        cerr << "Error loading shaders." << endl;
+        return 1;
+    }
+
     GLuint vertexbuffer; // Generate 1 buffer, put the resulting identifier in vertexbuffer
 
     glGenBuffers(1, &vertexbuffer); // The following commands will talk about our 'vertexbuffer' buffer
@@ -64,7 +75,6 @@ void draw_loop(GLFWwindow* window,GLuint programID)
     iResolution = glGetUniformLocation(programID,"iResolution");
     iMouse = glGetUniformLocation(programID,"iMouse");
 
-    float time = 0.0;
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
            0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -80,10 +90,15 @@ void draw_loop(GLFWwindow* window,GLuint programID)
 
 
     glUseProgram( programID );
+
+    glUniform2fv(iResolution,1,resolution); //TODO: Refactor duplicated code
+    glUniform2fv(iMouse,1,mouse_position);
+    glViewport(0, 0, resolution[0], resolution[1]);
+
     do{
         glClear( GL_COLOR_BUFFER_BIT);
 
-        glUniform1f(iTime,time);
+        glUniform1f(iTime,g_time);
 
         glEnableVertexAttribArray(0);
         glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
@@ -93,10 +108,17 @@ void draw_loop(GLFWwindow* window,GLuint programID)
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        time += delta;
+        g_time += delta;
+        if (handler.reload_shader)
+        {
+            handler.reload_shader = false;
+            return 2;
+        }
     } // Check if the ESC key was pressed or the window was closed
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
+
+    return 0;
 
 }
 int main(int argc, char *argv[])
@@ -124,14 +146,13 @@ int main(int argc, char *argv[])
     }
 
     initialize_keys(window);
-
+    
     /**Set callbacks **/
     glfwSetWindowSizeCallback(window,window_size_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
     /**Init window size**/
-
     window_size_callback(window,width,height);
 
     //Create VAO 
@@ -141,13 +162,12 @@ int main(int argc, char *argv[])
     
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
+    InotifyHandler handler(fragment_shader_path);
 
-    GLuint programID = LoadShaders(fragment_shader_path);
-    if (programID == 0)
+    int exit_code = 2;
+    while(exit_code == 2)
     {
-        cerr << "Error loading shaders." << endl;
-        return 1;
+        exit_code = draw_loop(window,fragment_shader_path,handler);
     }
-
-    draw_loop(window,programID);
+    return exit_code;
 }
