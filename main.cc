@@ -77,6 +77,10 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
     iResolution = glGetUniformLocation(programID,"iResolution");
     iMouse = glGetUniformLocation(programID,"iMouse");
 
+    GLuint iTexture = glGetUniformLocation(programID,"iTexture");
+    GLuint texture = loadTexture("test.png");
+    if(texture == 0) return 1;
+    
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
            0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -95,6 +99,8 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
 
     glUniform2fv(iResolution,1,resolution); //TODO: Refactor duplicated code
     glUniform2fv(iMouse,1,mouse_position);
+    glUniform1i(iTexture, texture);
+
     glViewport(0, 0, resolution[0], resolution[1]);
 
     do{
