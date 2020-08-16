@@ -6,9 +6,6 @@
 
 using namespace std;
 
-bool reload_shader = false;
-bool look_for_events = true;
-
 #define BUF_LEN (10 * (sizeof(struct inotify_event) + NAME_MAX + 1))
 
 void InotifyHandler::query_events()
@@ -61,7 +58,7 @@ void InotifyHandler::query_events()
     }
 
 }
-InotifyHandler::InotifyHandler(const char* p_file_path) : 
+InotifyHandler::InotifyHandler(const char* p_file_path) : look_for_events(true),
     file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,this) { }
 InotifyHandler::~InotifyHandler()
 {

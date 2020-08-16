@@ -3,6 +3,7 @@
 
 #include "init.hh"
 #include "reload.hh"
+#include "main.hh"
 
 using namespace std;
 
@@ -13,6 +14,7 @@ const float SCROLL_FACTOR = 0.05f;
 float g_time = 0.0f;
 float delta = 0.01f;
 
+bool reload_shader = false;
 /*** Input callbacks ***/
 
 GLuint iResolution;
@@ -55,7 +57,7 @@ static const GLfloat g_vertex_buffer_data[] = {
     1.0f,-1.0f,0.0f,
 };
 
-int draw_loop(GLFWwindow* window,const char* fragment_shader_path,InotifyHandler& handler)
+int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
 {
     GLuint programID = LoadShaders(fragment_shader_path);
     if (programID == 0)
@@ -109,9 +111,9 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,InotifyHandler
         glfwPollEvents();
 
         g_time += delta;
-        if (handler.reload_shader)
+        if (reload_shader)
         {
-            handler.reload_shader = false;
+            reload_shader = false;
             return 2;
         }
     } // Check if the ESC key was pressed or the window was closed
@@ -128,7 +130,8 @@ int main(int argc, char *argv[])
     {
         cout << "Usage: " << argv[0] << " [fragment_shader_path]" << endl;
         cout << "If a shader file is not specified, the program will search for fragment.glsl" << endl;
-        cout << "in the current directory as its default shaders" << endl << endl;
+        cout << "in the current directory as its default shaders" << endl;
+        cout << "The program will reload the shader if exists a modification in the shader source file" << endl << endl;
 
         cout << "Supported uniforms: iResolution, iTime and iMouse" << endl;
         cout << "Use mouse scroll to change iTime speed" << endl;
@@ -162,12 +165,13 @@ int main(int argc, char *argv[])
     
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
-    InotifyHandler handler(fragment_shader_path);
+
+    InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
 
     int exit_code = 2;
     while(exit_code == 2)
     {
-        exit_code = draw_loop(window,fragment_shader_path,handler);
+        exit_code = draw_loop(window,fragment_shader_path);
     }
     return exit_code;
 }

@@ -1,4 +1,6 @@
 #include <thread>
+#include "main.hh"
+
 class InotifyHandler
 {
     const char *file_path;
@@ -10,7 +12,6 @@ class InotifyHandler
     void query_events();
 
     public:
-    bool reload_shader;
     InotifyHandler(const char* file_path);
     ~InotifyHandler();
 };
