@@ -2,3 +2,4 @@
 shaderview
 *.glsl
 *.png
+.vscode

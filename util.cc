@@ -8,7 +8,8 @@
 
 using namespace std;
 
-GLuint LoadShaders(const char * fragment_file_path){
+GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if theres an error with shader loading
+{
 
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -94,18 +95,19 @@ GLuint LoadShaders(const char * fragment_file_path){
 	return ProgramID;
 }
 
-GLuint loadTexture(const char* texture_file_path)
+GLuint loadTexture(const char* texture_file_path)   //Returns 0 if there is an with the texture loading
 {
     int width, height,nrChannels;
     unsigned char* data = stbi_load(texture_file_path, &width, &height, &nrChannels, 0);
 
     if (data == nullptr)
     {
-        cerr << "Error loading texture file from disk" << endl;
+        cerr << "Error loading texture file from disk: " << texture_file_path << endl;
+        return 0;
     }
 
     GLuint texture;
-    glGenTextures(1, &texture);
+    glGenTextures(1, &texture);     //will return 0 if there is an error with texture generation
 
     if (texture != 0)
     {

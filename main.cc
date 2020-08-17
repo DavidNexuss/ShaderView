@@ -72,15 +72,41 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW); // Give our vertices to OpenGL.
 
-    //Search for uniforms
+    glUseProgram( programID );  //Enable shader
+
+    //Uniform initialization
+    //Search for fixed uniforms 
     GLuint iTime = glGetUniformLocation(programID,"iTime");
     iResolution = glGetUniformLocation(programID,"iResolution");
     iMouse = glGetUniformLocation(programID,"iMouse");
-
-    GLuint iTexture = glGetUniformLocation(programID,"iTexture");
-    GLuint texture = loadTexture("test.png");
-    if(texture == 0) return 1;
     
+    //Uniform set
+    glUniform2fv(iResolution,1,resolution);
+    glUniform2fv(iMouse,1,mouse_position);
+    glViewport(0, 0, resolution[0], resolution[1]); //Needed to correct window resolution to same as uniform iResolution
+
+
+    //Search for texture channel uniforms and try to load the textures
+    int idx = 0;
+    int texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
+
+    while(texture_slot_id != -1)
+    {
+        string file_path = "iChannel" + std::to_string(idx) + ".png";
+        GLuint texture = loadTexture(file_path.c_str());
+
+        if (texture == 0)
+        {
+            cerr << "Error loading required texture " << texture_slot_id << endl;
+            return 1;
+        }
+        
+        glUniform1i(texture_slot_id,texture);
+        idx++;
+        texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
+    }
+
+    //Enable screen mesh
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
            0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -93,15 +119,6 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
         // Draw the triangle !
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glDisableVertexAttribArray(0);
-
-
-    glUseProgram( programID );
-
-    glUniform2fv(iResolution,1,resolution); //TODO: Refactor duplicated code
-    glUniform2fv(iMouse,1,mouse_position);
-    glUniform1i(iTexture, texture);
-
-    glViewport(0, 0, resolution[0], resolution[1]);
 
     do{
         glClear( GL_COLOR_BUFFER_BIT);
@@ -135,12 +152,18 @@ int main(int argc, char *argv[])
     if (argc > 1 and string(argv[1]) == "--help")
     {
         cout << "Usage: " << argv[0] << " [fragment_shader_path]" << endl;
-        cout << "If a shader file is not specified, the program will search for fragment.glsl" << endl;
-        cout << "in the current directory as its default shaders" << endl;
+        cout << "If a shader file is not specified, the program will search for fragment.glsl in the current directory as its default shaders" << endl;
+        cout << "For texture use uniform sampler2D iChannel* The program will search for textures as iChannel0.png iChannel1.png iChannel2.png..." << endl;
+
         cout << "The program will reload the shader if exists a modification in the shader source file" << endl << endl;
 
-        cout << "Supported uniforms: iResolution, iTime and iMouse" << endl;
-        cout << "Use mouse scroll to change iTime speed" << endl;
+        cout << "Supported uniforms: " << endl;
+        cout << "iResolution(for screen resolution)" << endl;
+        cout << "iTime(for execution time)" << endl;
+        cout << "iMouse(for mouse position)" << endl;
+        cout << "iChannel(for texture channel)" << endl;
+
+        cout << endl << "Use mouse scroll to change iTime speed" << endl;
         return 0;
     }
 
