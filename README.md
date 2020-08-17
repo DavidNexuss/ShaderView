@@ -1,7 +1,10 @@
 # ShaderView, a shader renderer
 
 ShaderViewer is a simple utility to render glsl shader with the minimum overhead and setup posible,
-it will pass to the shader some uniforms but won't do anything else.
+it will pass to the shader some uniforms and textures.
+
+![What is this](showcase.png)
+One shader renderered with this program.
 
 ### Made with some code from the website http://www.opengl-tutorial.org
 

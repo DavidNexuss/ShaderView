@@ -3,3 +3,4 @@ shaderview
 *.glsl
 *.png
 .vscode
+!showcase.png
