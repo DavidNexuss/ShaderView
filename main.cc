@@ -45,6 +45,17 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     delta += yoffset * SCROLL_FACTOR;
 }
 
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    static float old_delta;
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+         if (delta != 0.0f)
+         {
+             old_delta = delta;
+             delta = 0.0f;
+         } else delta = old_delta;
+}
+
 /** Screen mesh **/
 
 static const GLfloat g_vertex_buffer_data[] = {
@@ -121,7 +132,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
     glDisableVertexAttribArray(0);
 
     do{
-        glClear( GL_COLOR_BUFFER_BIT);
+        //glClear( GL_COLOR_BUFFER_BIT);    //No need to clear screen, fragment shader will override every pixel
 
         glUniform1f(iTime,g_time);
 
@@ -183,6 +194,7 @@ int main(int argc, char *argv[])
     glfwSetWindowSizeCallback(window,window_size_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     /**Init window size**/
     window_size_callback(window,width,height);
