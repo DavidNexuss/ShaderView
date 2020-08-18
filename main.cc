@@ -14,10 +14,16 @@ const float SCROLL_FACTOR = 0.05f;
 float g_time = 0.0f;
 float delta = 0.01f;
 
+float zoom_level = 1.0f;
+float current_zoom_level = 1.0f;
+
 bool reload_shader = false;
+bool zoom = false;
 /*** Input callbacks ***/
 
 GLuint iResolution;
+GLuint iZoom;
+
 float resolution[2];
 float mouse_position[2];
 void window_size_callback(GLFWwindow* window,int width,int height)
@@ -42,7 +48,13 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    if (zoom)
+    {
+        zoom_level += yoffset * SCROLL_FACTOR;
+
+    }else 
     delta += yoffset * SCROLL_FACTOR;
+
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -54,6 +66,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
              old_delta = delta;
              delta = 0.0f;
          } else delta = old_delta;
+    else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+    {
+        zoom = not zoom;
+    }
 }
 
 /** Screen mesh **/
@@ -90,11 +106,13 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
     GLuint iTime = glGetUniformLocation(programID,"iTime");
     iResolution = glGetUniformLocation(programID,"iResolution");
     iMouse = glGetUniformLocation(programID,"iMouse");
-    
+    iZoom = glGetUniformLocation(programID,"iZoom");
+
     //Uniform set
     glUniform2fv(iResolution,1,resolution);
     glUniform2fv(iMouse,1,mouse_position);
     glViewport(0, 0, resolution[0], resolution[1]); //Needed to correct window resolution to same as uniform iResolution
+    glUniform1f(iZoom,zoom_level);
 
 
     //Search for texture channel uniforms and try to load the textures
@@ -135,6 +153,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
         //glClear( GL_COLOR_BUFFER_BIT);    //No need to clear screen, fragment shader will override every pixel
 
         glUniform1f(iTime,g_time);
+        glUniform1f(iZoom,current_zoom_level);
 
         glEnableVertexAttribArray(0);
         glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
@@ -150,6 +169,8 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
             reload_shader = false;
             return 2;
         }
+
+        current_zoom_level += (zoom_level - current_zoom_level) * 0.1f;
     } // Check if the ESC key was pressed or the window was closed
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
@@ -173,8 +194,9 @@ int main(int argc, char *argv[])
         cout << "iTime(for execution time)" << endl;
         cout << "iMouse(for mouse position)" << endl;
         cout << "iChannel(for texture channel)" << endl;
+        cout << "iZoom(for zoom level)" << endl;
 
-        cout << endl << "Use mouse scroll to change iTime speed" << endl;
+        cout << endl << "Use mouse scroll to change iTime speed, press control to change between zoom and speed increment" << endl;
         return 0;
     }
 
