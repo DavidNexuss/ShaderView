@@ -2,8 +2,11 @@
 #include <csignal>
 
 #include "init.hh"
-#include "reload.hh"
 #include "main.hh"
+
+#ifndef __MINGW32__
+#include "reload.hh"
+#endif
 
 using namespace std;
 
@@ -229,8 +232,9 @@ int main(int argc, char *argv[])
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
 
+    #ifndef __MINGW32__
     InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
-
+    #endif
     int exit_code = 2;
     while(exit_code == 2)
     {

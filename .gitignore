@@ -4,3 +4,6 @@ shaderview
 *.png
 .vscode
 !showcase.png
+*.exe
+*.dll
+dist/*
