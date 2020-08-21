@@ -25,7 +25,7 @@ GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if there
 		FragmentShaderCode = sstr.str();
 		FragmentShaderStream.close();
 	}else{
-        cerr << "Impossible to open" << fragment_file_path << endl;
+        cerr << "Impossible to open " << fragment_file_path << endl;
         return 1;
     }
 
