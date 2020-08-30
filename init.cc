@@ -13,10 +13,14 @@ int initialize_GLFW()
 
     return 0;
 }
-int initialize_window(GLFWwindow* & window,int width,int height)
+int initialize_window(GLFWwindow* & window,int width,int height,bool no_decoration_flag)
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // We want OpenGL 3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    if(no_decoration_flag)
+    {
+        glfwWindowHint(GLFW_DECORATED,false);
+    }
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // We don't want the old OpenGL 
     
