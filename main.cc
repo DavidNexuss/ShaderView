@@ -2,8 +2,11 @@
 #include <csignal>
 
 #include "init.hh"
-#include "reload.hh"
 #include "main.hh"
+
+#ifndef __MINGW32__
+#include "reload.hh"
+#endif
 
 using namespace std;
 
@@ -192,7 +195,7 @@ int main(int argc, char *argv[])
         cout << "Supported uniforms: " << endl;
         cout << "iResolution(for screen resolution)" << endl;
         cout << "iTime(for execution time)" << endl;
-        cout << "iMouse(for mouse position)" << endl;
+        cout << "iMouse(for mouse position) between [-0.5,0.5]" << endl;
         cout << "iChannel(for texture channel)" << endl;
         cout << "iZoom(for zoom level)" << endl;
 
@@ -229,8 +232,9 @@ int main(int argc, char *argv[])
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
 
+    #ifndef __MINGW32__
     InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
-
+    #endif
     int exit_code = 2;
     while(exit_code == 2)
     {
