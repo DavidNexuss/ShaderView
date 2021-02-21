@@ -25,7 +25,6 @@ void InotifyHandler::query_events()
     wd = inotify_add_watch(inotifyFd,file_path,IN_ALL_EVENTS);
     while(look_for_events)
     {
-        cerr << "Reading watch" << endl;
         numRead = read(inotifyFd,buf,BUF_LEN);
         for(p = buf; p < buf + numRead; )
         {
