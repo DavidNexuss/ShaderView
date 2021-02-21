@@ -25,6 +25,7 @@ void InotifyHandler::query_events()
     wd = inotify_add_watch(inotifyFd,file_path,IN_ALL_EVENTS);
     while(look_for_events)
     {
+        cerr << "Reading watch" << endl;
         numRead = read(inotifyFd,buf,BUF_LEN);
         for(p = buf; p < buf + numRead; )
         {
@@ -51,18 +52,25 @@ void InotifyHandler::query_events()
             if (event->mask & IN_OPEN)          printf("IN_OPEN ");
             if (event->mask & IN_Q_OVERFLOW)    printf("IN_Q_OVERFLOW ");
             if (event->mask & IN_UNMOUNT)       printf("IN_UNMOUNT ");
-            cout << endl;  */
-
+            cout << endl;
+            */
+            if (event->mask & IN_DELETE_SELF)
+            {
+                inotify_rm_watch(inotifyFd,wd);
+                inotify_add_watch(inotifyFd,file_path,IN_ALL_EVENTS);
+            }
             p+= sizeof(struct inotify_event) + event->len;
         }
     }
 
 }
 InotifyHandler::InotifyHandler(const char* p_file_path) : look_for_events(true),
-    file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,this) { }
+    file_path(p_file_path), inotify_thread(&InotifyHandler::query_events,this) 
+{ 
+    inotify_thread.detach();   //Naive solution
+}
 InotifyHandler::~InotifyHandler()
 {
     look_for_events = false;
     inotify_rm_watch(inotifyFd,wd);
-    inotify_thread.join();
 }
