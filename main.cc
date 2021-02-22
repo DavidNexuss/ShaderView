@@ -1,6 +1,8 @@
 #include <iostream>
 #include <csignal>
-
+#include <memory>
+#include <GLFont.h>
+#include <FTLabel.h>
 #include "init.hh"
 #include "main.hh"
 
@@ -29,6 +31,10 @@ GLuint iZoom;
 
 float resolution[2];
 float mouse_position[2];
+
+shared_ptr<GLFont> font;
+unique_ptr<FTLabel> errorLabel = nullptr;
+
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
 
@@ -38,6 +44,11 @@ void window_size_callback(GLFWwindow* window,int width,int height)
     glUniform2fv(iResolution,1,resolution);
     glViewport(0, 0, width, height);
 
+    if (errorLabel != nullptr)
+    {
+        errorLabel->setWindowSize(width, height);
+        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+    }
 }
 
 GLuint iMouse;
@@ -87,15 +98,54 @@ static const GLfloat g_vertex_buffer_data[] = {
     1.0f,-1.0f,0.0f,
 };
 
-int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
+int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
 {
-    GLuint programID = LoadShaders(fragment_shader_path);
+    char* buffer = nullptr;
+    GLuint programID = LoadShaders(fragment_shader_path,buffer);
     if (programID == 0)
     {
+        font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
         cerr << "Error loading shaders." << endl;
-        return 1;
+        cerr << buffer << endl;
+
+        errorLabel = unique_ptr<FTLabel>(new FTLabel(
+          font,
+          buffer,
+          20,
+          20,
+          resolution[0],
+          resolution[1],
+          resolution[0],
+          resolution[1]
+        ));
+
+        errorLabel->setPosition(20, 20);
+        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+        errorLabel->setPixelSize(13);
+        errorLabel->setIndentation(50);
+        errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
+        errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
+        do
+        {
+            glClear(GL_COLOR_BUFFER_BIT);
+            errorLabel->render();
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+            if (reload_shader)
+            {
+                reload_shader = false;
+                delete buffer;
+                return 2;
+            }
+        }
+        while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
+           glfwWindowShouldClose(window) == 0 );
+        
+        delete buffer;
+        return 0;
     }
 
+    glBindVertexArray(vao);
     GLuint vertexbuffer; // Generate 1 buffer, put the resulting identifier in vertexbuffer
 
     glGenBuffers(1, &vertexbuffer); // The following commands will talk about our 'vertexbuffer' buffer
@@ -228,7 +278,7 @@ int main(int argc, char *argv[])
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
-    
+
 
     const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
 
@@ -238,7 +288,7 @@ int main(int argc, char *argv[])
     int exit_code = 2;
     while(exit_code == 2)
     {
-        exit_code = draw_loop(window,fragment_shader_path);
+        exit_code = draw_loop(window,fragment_shader_path,VertexArrayID);
     }
     return exit_code;
 }

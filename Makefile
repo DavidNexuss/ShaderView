@@ -1,11 +1,16 @@
 CC=g++
-OPTS=-I thirdparty -g
-LOPTS=-lGL -lglfw -lGLEW -lpthread
-MODULES=main.o util.o init.o thirdparty/stb_image.o reload.o
+OPTS=-I thirdparty -g -I /usr/include/freetype2
+LOPTS=-lGL -lglfw -lGLEW -lpthread -lfreetype
+MODULES=main.o util.o init.o reload.o \
+		thirdparty/stb_image.o \
+		thirdparty/FontAtlas.o \
+		thirdparty/FTLabel.o \
+		thirdparty/GLFont.o \
+		thirdparty/GLUtils.o
 WINMODULES=main.o util.o init.o thirdparty/stb_image.o thirdparty/glew.o
 
-shaderview: $(MODULES)
-	$(CC) -o $@ $(OPTS) $(LOPTS) $^
+shaderview: $(MODULES) mono.ttf
+	$(CC) -o $@ $(OPTS) $(LOPTS) $(MODULES)
 
 shaderview.exe: CC=x86_64-w64-mingw32-g++
 shaderview.exe: OPTS+= -O2 -I /x86_64-w64-mingw32/include

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if theres an error with shader loading
+GLuint LoadShaders(const char * fragment_file_path,char* &errorBuffer)     //Will return 1 if theres an error with shader loading
 {
 
 	// Create the shaders
@@ -46,10 +46,11 @@ GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if there
 	// Check Vertex Shader
 	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+
 	if ( InfoLogLength > 0 ){
-		std::vector<char> VertexShaderErrorMessage(InfoLogLength+1);
-		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
-		printf("%s\n", &VertexShaderErrorMessage[0]);
+		errorBuffer = new char[InfoLogLength+1];
+		glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, errorBuffer);
+		return 0;
 	}
 
 	// Compile Fragment Shader
@@ -63,9 +64,9 @@ GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if there
 	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
 	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if ( InfoLogLength > 0 ){
-		std::vector<char> FragmentShaderErrorMessage(InfoLogLength+1);
-		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
-		printf("%s\n", &FragmentShaderErrorMessage[0]);
+		errorBuffer = new char[InfoLogLength+1];
+		glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, errorBuffer);
+		return 0;
 	}
 
 	// Link the program
@@ -80,9 +81,8 @@ GLuint LoadShaders(const char * fragment_file_path)     //Will return 1 if there
 	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
 	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
 	if ( InfoLogLength > 0 ){
-		vector<char> ProgramErrorMessage(InfoLogLength+1);
-		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
-		printf("%s\n", &ProgramErrorMessage[0]);
+		errorBuffer = new char[InfoLogLength+1];
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, errorBuffer);
         return 0;
 	}
 	
