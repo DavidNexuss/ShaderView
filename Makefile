@@ -1,5 +1,5 @@
 CC=g++
-OPTS=-I thirdparty -g -I /usr/include/freetype2
+OPTS=-I thirdparty -I /usr/include/freetype2
 LOPTS=-lGL -lglfw -lGLEW -lpthread -lfreetype
 MODULES=main.o util.o init.o reload.o \
 		thirdparty/stb_image.o \
@@ -21,11 +21,15 @@ shaderview.exe: $(WINMODULES)
 
 release: OPTS+=-O2
 release: shaderview
-install: shaderview
+
+debug: OPTS+=-g
+debug: shaderview
+
+install: release
 	cp -f shaderview /bin/
 	chmod 755 /bin/shaderview
 	strip /bin/shaderview
-%.o : %.cc
+%.o : src/%.cc
 	$(CC) -c $^ $(OPTS) -o $@
 
 thirdparty/%.o : thirdparty/%.cc
