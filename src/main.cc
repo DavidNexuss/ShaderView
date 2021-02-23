@@ -34,7 +34,9 @@ float mouse_position[2];
 
 shared_ptr<GLFont> font;
 unique_ptr<FTLabel> errorLabel = nullptr;
+int fontSize  = 13;
 
+bool errored = false;
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
 
@@ -73,17 +75,34 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
+
     static float old_delta;
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+    bool label_changed = false;
+    if (key == GLFW_KEY_SPACE)
          if (delta != 0.0f)
          {
              old_delta = delta;
              delta = 0.0f;
          } else delta = old_delta;
-    else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_LEFT_CONTROL)
     {
         zoom = not zoom;
     }
+    else if(key == GLFW_KEY_KP_ADD && errored)
+    {
+        fontSize += 1;
+        label_changed = true;
+    }
+    else if (key == GLFW_KEY_KP_SUBTRACT && errored)
+    {
+        fontSize -= 1;
+        label_changed = true;
+    
+    }
+    if (label_changed) 
+        errorLabel->setPixelSize(fontSize);
+        
 }
 
 /** Screen mesh **/
@@ -121,10 +140,11 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
 
         errorLabel->setPosition(20, 20);
         errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
-        errorLabel->setPixelSize(13);
+        errorLabel->setPixelSize(fontSize);
         errorLabel->setIndentation(50);
         errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
         errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
+        errored = true;
         do
         {
             glClear(GL_COLOR_BUFFER_BIT);
@@ -135,6 +155,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
             {
                 reload_shader = false;
                 delete buffer;
+                errored = false;
                 return 2;
             }
         }
@@ -142,6 +163,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
            glfwWindowShouldClose(window) == 0 );
         
         delete buffer;
+        errored = false;
         return 0;
     }
 
