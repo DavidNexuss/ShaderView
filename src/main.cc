@@ -5,6 +5,7 @@
 #include <FTLabel.h>
 #include "init.hh"
 #include "main.hh"
+#include "scale.hh"
 
 #ifndef __MINGW32__
 #include "reload.hh"
@@ -30,6 +31,7 @@ GLuint iResolution;
 GLuint iZoom;
 
 float resolution[2];
+float render_resolution[2];
 float mouse_position[2];
 
 shared_ptr<GLFont> font;
@@ -43,8 +45,12 @@ void window_size_callback(GLFWwindow* window,int width,int height)
     resolution[0] = width;
     resolution[1] = height;
 
-    glUniform2fv(iResolution,1,resolution);
-    glViewport(0, 0, width, height);
+    render_resolution[0] = resolution[0] / 8;
+    render_resolution[1] = resolution[1] / 8;
+
+    set_framebuffer_size(render_resolution[0],render_resolution[1]);
+
+    glUniform2fv(iResolution,1,render_resolution);
 
     if (errorLabel != nullptr)
     {
@@ -184,7 +190,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
     iZoom = glGetUniformLocation(programID,"iZoom");
 
     //Uniform set
-    glUniform2fv(iResolution,1,resolution);
+    glUniform2fv(iResolution,1,render_resolution);
     glUniform2fv(iMouse,1,mouse_position);
     glViewport(0, 0, resolution[0], resolution[1]); //Needed to correct window resolution to same as uniform iResolution
     glUniform1f(iZoom,zoom_level);
@@ -224,15 +230,21 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
     glDisableVertexAttribArray(0);
 
+    if (!is_framebuffer()) initialize_framebuffer();
     do{
         //glClear( GL_COLOR_BUFFER_BIT);    //No need to clear screen, fragment shader will override every pixel
 
         glUniform1f(iTime,g_time);
         glUniform1f(iZoom,current_zoom_level);
 
+        glUseProgram(programID);  //Enable shader
+
+        enable_framebuffer();
         glEnableVertexAttribArray(0);
         glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
         glDisableVertexAttribArray(0);
+
+        disable_framebuffer(resolution[0],resolution[1]);
 
 
         glfwSwapBuffers(window);
