@@ -267,8 +267,8 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
 }
 int main(int argc, char *argv[])
 {
-
-    if (argc > 1 and string(argv[1]) == "--help")
+    int base_index = 1;
+    if (argc > base_index and string(argv[base_index]) == "--help")
     {
         cout << "Usage: " << argv[0] << " [fragment_shader_path]" << endl;
         cout << "If a shader file is not specified, the program will search for fragment.glsl in the current directory as its default shaders" << endl;
@@ -287,11 +287,18 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    bool no_decoration_flag = false;
+    if (argc > base_index and string(argv[base_index]) == "--nodec")
+    {
+        no_decoration_flag = true;
+        base_index++;
+    }
+
     GLFWwindow* window;
     int width = WIDTH, height = HEIGHT;
 
     //Initialize every 
-    if (initialize_GLFW() or initialize_window(window,width,height) or initialize_GLEW(window))
+    if (initialize_GLFW() or initialize_window(window,width,height,no_decoration_flag) or initialize_GLEW(window))
     {
         cerr << "Failed to initialize GLFW" << endl;
         return 1;
@@ -314,7 +321,7 @@ int main(int argc, char *argv[])
     glBindVertexArray(VertexArrayID);
 
 
-    const char* fragment_shader_path = argc > 1 ? argv[1] : "fragment.glsl";
+    const char* fragment_shader_path = argc > base_index ? argv[base_index] : "fragment.glsl";
 
     #ifndef __MINGW32__
     InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
