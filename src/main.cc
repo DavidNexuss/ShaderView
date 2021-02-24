@@ -1,9 +1,14 @@
 #include <iostream>
 #include <csignal>
-
+#include <memory>
+#include <GLFont.h>
+#include <FTLabel.h>
 #include "init.hh"
-#include "reload.hh"
 #include "main.hh"
+
+#ifndef __MINGW32__
+#include "reload.hh"
+#endif
 
 using namespace std;
 
@@ -26,6 +31,12 @@ GLuint iZoom;
 
 float resolution[2];
 float mouse_position[2];
+
+shared_ptr<GLFont> font;
+unique_ptr<FTLabel> errorLabel = nullptr;
+int fontSize  = 13;
+
+bool errored = false;
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
 
@@ -35,6 +46,11 @@ void window_size_callback(GLFWwindow* window,int width,int height)
     glUniform2fv(iResolution,1,resolution);
     glViewport(0, 0, width, height);
 
+    if (errorLabel != nullptr)
+    {
+        errorLabel->setWindowSize(width, height);
+        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+    }
 }
 
 GLuint iMouse;
@@ -59,17 +75,34 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    if (action != GLFW_PRESS && action != GLFW_REPEAT) return;
+
     static float old_delta;
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+    bool label_changed = false;
+    if (key == GLFW_KEY_SPACE)
          if (delta != 0.0f)
          {
              old_delta = delta;
              delta = 0.0f;
          } else delta = old_delta;
-    else if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS)
+    else if (key == GLFW_KEY_LEFT_CONTROL)
     {
         zoom = not zoom;
     }
+    else if(key == GLFW_KEY_KP_ADD && errored)
+    {
+        fontSize += 1;
+        label_changed = true;
+    }
+    else if (key == GLFW_KEY_KP_SUBTRACT && errored)
+    {
+        fontSize -= 1;
+        label_changed = true;
+    
+    }
+    if (label_changed) 
+        errorLabel->setPixelSize(fontSize);
+        
 }
 
 /** Screen mesh **/
@@ -84,15 +117,57 @@ static const GLfloat g_vertex_buffer_data[] = {
     1.0f,-1.0f,0.0f,
 };
 
-int draw_loop(GLFWwindow* window,const char* fragment_shader_path)
+int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
 {
-    GLuint programID = LoadShaders(fragment_shader_path);
+    char* buffer = nullptr;
+    GLuint programID = LoadShaders(fragment_shader_path,buffer);
     if (programID == 0)
     {
+        font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
         cerr << "Error loading shaders." << endl;
-        return 1;
+        cerr << buffer << endl;
+
+        errorLabel = unique_ptr<FTLabel>(new FTLabel(
+          font,
+          buffer,
+          20,
+          20,
+          resolution[0],
+          resolution[1],
+          resolution[0],
+          resolution[1]
+        ));
+
+        errorLabel->setPosition(20, 20);
+        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+        errorLabel->setPixelSize(fontSize);
+        errorLabel->setIndentation(50);
+        errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
+        errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
+        errored = true;
+        do
+        {
+            glClear(GL_COLOR_BUFFER_BIT);
+            errorLabel->render();
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+            if (reload_shader)
+            {
+                reload_shader = false;
+                delete buffer;
+                errored = false;
+                return 2;
+            }
+        }
+        while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
+           glfwWindowShouldClose(window) == 0 );
+        
+        delete buffer;
+        errored = false;
+        return 0;
     }
 
+    glBindVertexArray(vao);
     GLuint vertexbuffer; // Generate 1 buffer, put the resulting identifier in vertexbuffer
 
     glGenBuffers(1, &vertexbuffer); // The following commands will talk about our 'vertexbuffer' buffer
@@ -192,7 +267,7 @@ int main(int argc, char *argv[])
         cout << "Supported uniforms: " << endl;
         cout << "iResolution(for screen resolution)" << endl;
         cout << "iTime(for execution time)" << endl;
-        cout << "iMouse(for mouse position)" << endl;
+        cout << "iMouse(for mouse position) between [-0.5,0.5]" << endl;
         cout << "iChannel(for texture channel)" << endl;
         cout << "iZoom(for zoom level)" << endl;
 
@@ -232,16 +307,17 @@ int main(int argc, char *argv[])
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
-    
+
 
     const char* fragment_shader_path = argc > base_index ? argv[base_index] : "fragment.glsl";
 
+    #ifndef __MINGW32__
     InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
-
+    #endif
     int exit_code = 2;
     while(exit_code == 2)
     {
-        exit_code = draw_loop(window,fragment_shader_path);
+        exit_code = draw_loop(window,fragment_shader_path,VertexArrayID);
     }
     return exit_code;
 }

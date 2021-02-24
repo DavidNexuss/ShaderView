@@ -12,3 +12,7 @@ One shader renderered with this program.
 Autogenerate uniform stubs in glsl shader to guarantee compatibility with ShaderToy shaders
 
 Add FPS counter and window size label
+
+### Compiling
+Compiles using make and requires opengl glew and glm installed
+Requires ttf called mono.ttf int the build directory
