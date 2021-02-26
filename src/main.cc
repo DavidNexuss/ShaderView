@@ -31,7 +31,6 @@ GLuint iResolution;
 GLuint iZoom;
 
 float resolution[2];
-float render_resolution[2];
 float mouse_position[2];
 
 shared_ptr<GLFont> font;
@@ -39,18 +38,17 @@ unique_ptr<FTLabel> errorLabel = nullptr;
 int fontSize  = 13;
 
 bool errored = false;
+bool reschanged = false;
+
+Scale scale(1.0);
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
-
+    reschanged = true;
     resolution[0] = width;
     resolution[1] = height;
 
-    render_resolution[0] = resolution[0] / 8;
-    render_resolution[1] = resolution[1] / 8;
-
-    set_framebuffer_size(render_resolution[0],render_resolution[1]);
-
-    glUniform2fv(iResolution,1,render_resolution);
+    glViewport(0,0, resolution[0], resolution[1]);
+    glUniform2fv(iResolution,1,resolution);
 
     if (errorLabel != nullptr)
     {
@@ -95,16 +93,23 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     {
         zoom = not zoom;
     }
-    else if(key == GLFW_KEY_KP_ADD && errored)
+    else if(key == GLFW_KEY_KP_ADD)
     {
-        fontSize += 1;
-        label_changed = true;
+        if (errored)
+        {
+            fontSize += 1;
+            label_changed = true;
+        } else
+        scale.set_resize_factor(scale.get_resize_factor() + 0.05);
     }
-    else if (key == GLFW_KEY_KP_SUBTRACT && errored)
+    else if (key == GLFW_KEY_KP_SUBTRACT)
     {
-        fontSize -= 1;
-        label_changed = true;
-    
+        if (errored)
+        {
+            fontSize -= 1;
+            label_changed = true;
+        }else 
+        scale.set_resize_factor(scale.get_resize_factor() - 0.05);
     }
     if (label_changed) 
         errorLabel->setPixelSize(fontSize);
@@ -123,13 +128,49 @@ static const GLfloat g_vertex_buffer_data[] = {
     1.0f,-1.0f,0.0f,
 };
 
-int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
+struct Mesh
+{
+    GLuint vao,vertexbuffer;
+
+    inline void bind() const { glBindVertexArray(vao); }
+    inline void draw() const
+    {
+        //glBindVertexArray(vertexbuffer);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(
+               0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+               3,                  // size
+               GL_FLOAT,           // type
+               GL_FALSE,           // normalized?
+               0,                  // stride
+               (void*)0            // array buffer offset
+        );
+        glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
+        glDisableVertexAttribArray(0);
+    }
+};
+
+Mesh createScreenMesh()
+{
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    return {vao, vertexbuffer};
+}
+
+// -1 Reload
+// 0 Quit
+int load_shader(const char* fragment_shader_path,GLFWwindow* window,GLuint& programID)
 {
     char* buffer = nullptr;
-    GLuint programID = LoadShaders(fragment_shader_path,buffer);
+    programID = LoadShaders(fragment_shader_path,buffer);
     if (programID == 0)
     {
-        font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
         cerr << "Error loading shaders." << endl;
         cerr << buffer << endl;
 
@@ -162,7 +203,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
                 reload_shader = false;
                 delete buffer;
                 errored = false;
-                return 2;
+                return 1;
             }
         }
         while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
@@ -170,18 +211,15 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
         
         delete buffer;
         errored = false;
-        return 0;
+        return 2;
     }
+    return 0;
+}
 
-    glBindVertexArray(vao);
-    GLuint vertexbuffer; // Generate 1 buffer, put the resulting identifier in vertexbuffer
-
-    glGenBuffers(1, &vertexbuffer); // The following commands will talk about our 'vertexbuffer' buffer
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW); // Give our vertices to OpenGL.
-
-    glUseProgram( programID );  //Enable shader
-
+int draw_loop(GLFWwindow* window,const Mesh& screenMesh,GLuint programID)
+{
+    //Enable shader
+    glUseProgram( programID );
     //Uniform initialization
     //Search for fixed uniforms 
     GLuint iTime = glGetUniformLocation(programID,"iTime");
@@ -189,10 +227,12 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
     iMouse = glGetUniformLocation(programID,"iMouse");
     iZoom = glGetUniformLocation(programID,"iZoom");
 
+    //Needed to correct window resolution to same as uniform iResolution
+    glViewport(0, 0, resolution[0], resolution[1]); 
+    
     //Uniform set
-    glUniform2fv(iResolution,1,render_resolution);
+    glUniform2fv(iResolution,1,resolution);
     glUniform2fv(iMouse,1,mouse_position);
-    glViewport(0, 0, resolution[0], resolution[1]); //Needed to correct window resolution to same as uniform iResolution
     glUniform1f(iZoom,zoom_level);
 
 
@@ -216,36 +256,15 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
         texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
     }
 
-    //Enable screen mesh
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(
-           0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-           3,                  // size
-           GL_FLOAT,           // type
-           GL_FALSE,           // normalized?
-           0,                  // stride
-           (void*)0            // array buffer offset
-    );
-        // Draw the triangle !
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glDisableVertexAttribArray(0);
-
-    if (!is_framebuffer()) initialize_framebuffer();
+    scale.flush(iResolution);
     do{
-        //glClear( GL_COLOR_BUFFER_BIT);    //No need to clear screen, fragment shader will override every pixel
 
         glUniform1f(iTime,g_time);
         glUniform1f(iZoom,current_zoom_level);
 
-        glUseProgram(programID);  //Enable shader
-
-        enable_framebuffer();
-        glEnableVertexAttribArray(0);
-        glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
-
-        disable_framebuffer(resolution[0],resolution[1]);
-
+        scale.begin(resolution[0],resolution[1],iResolution);
+        screenMesh.draw();
+        scale.end();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -254,6 +273,7 @@ int draw_loop(GLFWwindow* window,const char* fragment_shader_path,GLuint vao)
         if (reload_shader)
         {
             reload_shader = false;
+            scale.dispose_framebuffer();
             return 2;
         }
 
@@ -315,21 +335,26 @@ int main(int argc, char *argv[])
     /**Init window size**/
     window_size_callback(window,width,height);
 
-    //Create VAO 
-    GLuint VertexArrayID;
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
+    /**Create screen mesh**/
+    Mesh screenMesh = createScreenMesh();
 
-
+    font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
     const char* fragment_shader_path = argc > base_index ? argv[base_index] : "fragment.glsl";
 
     #ifndef __MINGW32__
     InotifyHandler handler(fragment_shader_path);   //Autoreload shaders
     #endif
+    
     int exit_code = 2;
     while(exit_code == 2)
     {
-        exit_code = draw_loop(window,fragment_shader_path,VertexArrayID);
+        GLuint programID;
+        while((exit_code = load_shader(fragment_shader_path,window,programID))) 
+        {
+            if (exit_code == 2) break;
+        }
+        exit_code = draw_loop(window,screenMesh,programID);
+        glDeleteProgram(programID);
     }
     return exit_code;
 }

@@ -1,23 +1,55 @@
 #include "scale.hh"
+#include <iostream>
+using namespace std;
 
-GLuint fb = 0;
-GLuint color = 0;
-GLuint depth = 0;
-
-int fbo_width = 512;
-int fbo_height = 512;
-
-void set_framebuffer_size(int width, int height)
+Scale::Scale(float resizeFactor)
 {
-    if (is_framebuffer()) dispose_framebuffer();
-
-    fbo_width = width;
-    fbo_height = height;
-
-    initialize_framebuffer();
+    resize_factor = resizeFactor;
+}
+Scale::Scale(int screenWidth, int screenHeight,float resizeFactor,GLuint shaderRes)
+{
+    resize_factor = resizeFactor;
+    resize(screenWidth, screenHeight, shaderRes);
+}
+Scale::~Scale()
+{
+    dispose_framebuffer();
 }
 
-void initialize_framebuffer()
+float Scale::get_render_width() const
+{
+    return screen_width * resize_factor;
+}
+float Scale::get_render_height() const
+{
+    return screen_height * resize_factor;
+}
+void Scale::set_resize_factor(float factor)
+{
+    old_factor = resize_factor;
+    resize_factor = factor;
+}
+void Scale::resize(int screenWidth, int screenHeight,GLuint shaderRes)
+{
+    dispose_framebuffer();
+    screen_width = screenWidth;
+    screen_height = screenHeight;
+    float resolution[2] = {get_render_width(), get_render_height()};
+    glUniform2fv(shaderRes,1,resolution);
+    initialize_framebuffer();
+    old_factor = resize_factor;
+}
+
+void Scale::flush(GLuint shaderRes)
+{
+    resize(screen_width,screen_height,shaderRes);
+}
+float Scale::get_resize_factor() const
+{
+    return resize_factor;
+}
+
+void Scale::initialize_framebuffer()
 {
     glGenFramebuffers(1, &fb);
     glGenTextures(1, &color);
@@ -29,7 +61,7 @@ void initialize_framebuffer()
     glTexImage2D(   GL_TEXTURE_2D, 
             0, 
             GL_RGBA, 
-            fbo_width, fbo_height,
+            get_render_width(), get_render_height(),
             0, 
             GL_RGBA, 
             GL_UNSIGNED_BYTE, 
@@ -40,12 +72,12 @@ void initialize_framebuffer()
     glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, color, 0);
 
     glBindRenderbuffer(GL_RENDERBUFFER, depth);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, fbo_width, fbo_height);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, get_render_width(), get_render_height());
     glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth);
 
 }
 
-void dispose_framebuffer()
+void Scale::dispose_framebuffer()
 {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -54,39 +86,35 @@ void dispose_framebuffer()
     glDeleteTextures(1, &color);
     glDeleteRenderbuffers(1, &depth);
 }
-bool is_framebuffer()
-{
-    return fb != 0;
-}
 
-void enable_framebuffer()
+void Scale::begin(int screenWidth, int screenHeight,GLuint shaderRes)
 {
+    if (old_factor != resize_factor || fb == 0 || screenWidth != screen_width || screenHeight != screen_height) resize(screenWidth, screenHeight,shaderRes);
+
     glBindTexture(GL_TEXTURE_2D, 0);
     glEnable(GL_TEXTURE_2D);
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
-    glViewport(0,0, fbo_width, fbo_height);
+    glViewport(0,0, get_render_width(), get_render_height());
 
-    glClearColor(1,1,1,0);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
-void disable_framebuffer(int width, int height)
+void Scale::end()
 {
-    const float aspect = (float)width/(float)height;
+    const float aspect = (float)screen_width/(float)screen_height;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0,0, width, height);
+    glViewport(0,0, screen_width, screen_height);
 
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fb);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-    glClearColor(1.,1.,1.,0.);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, color);
 
-    glBlitFramebuffer(0, 0, fbo_width, fbo_height, 0, 0, width, height,
+    glBlitFramebuffer(0, 0, get_render_width(), get_render_height(), 0, 0, screen_width, screen_height,
                   GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER,0);

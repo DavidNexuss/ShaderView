@@ -3,7 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <stb_image.h>
-
+#include <cstring>
 #include "util.hh"
 
 using namespace std;
@@ -25,8 +25,12 @@ GLuint LoadShaders(const char * fragment_file_path,char* &errorBuffer)     //Wil
 		FragmentShaderCode = sstr.str();
 		FragmentShaderStream.close();
 	}else{
-        cerr << "Impossible to open " << fragment_file_path << endl;
-        return 1;
+		string errorMsg = "Impossible to open file " + string(fragment_file_path);
+		errorBuffer = new char[errorMsg.length() + 1];
+		memcpy(errorBuffer,errorMsg.c_str(),errorMsg.length());
+		
+		cerr << "Impossible to open " << fragment_file_path << endl;
+        return 0;
     }
 
 	GLint Result = GL_FALSE;

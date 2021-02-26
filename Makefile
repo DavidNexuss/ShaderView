@@ -7,7 +7,7 @@ MODULES=main.o util.o init.o reload.o scale.o \
 		thirdparty/FTLabel.o \
 		thirdparty/GLFont.o \
 		thirdparty/GLUtils.o
-WINMODULES=main.o util.o init.o thirdparty/stb_image.o thirdparty/glew.o
+WINMODULES=main.o util.o init.o thirdparty/stb_image.o thirdparty/FontAtlas.o thirdparty/FTLabel.o thirdparty/GLFont.o thirdparty/GLUtils.o thirdparty/glew.o 
 
 shaderview: $(MODULES) mono.ttf
 	$(CC) -o $@ $(OPTS) $(LOPTS) $(MODULES)
