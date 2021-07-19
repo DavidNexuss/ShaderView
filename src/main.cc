@@ -8,6 +8,9 @@
 #include "scale.hh"
 #include "native.hh"
 #include "window.hh"
+#include "camera.hh"
+#include "mesh.hh"
+#include "cubemap.hh"
 
 #ifndef __MINGW32__
 #include "reload.hh"
@@ -44,6 +47,10 @@ bool reschanged = false;
 
 Scale scale(1.0);
 ShaderWindow mainWindow;
+Camera camera;
+Mesh screenMesh;
+CubeMap cubeMap(4096);
+
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
     reschanged = true;
@@ -66,16 +73,17 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
     mouse_position[0] = xpos / resolution[0] - 0.5f;
     mouse_position[1] = ypos / resolution[1] - 0.5f;
     glUniform2fv(iMouse,1,mouse_position);
+    camera.inputDirection(mouse_position[0],mouse_position[1]);
 
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    if (zoom)
+    if (zoom)   //Perform zoom
     {
         zoom_level += yoffset * SCROLL_FACTOR;
 
-    }else 
+    }else //Speed up simulation
     delta += yoffset * SCROLL_FACTOR;
 
 }
@@ -118,54 +126,25 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     {
        // mainWindow.toggleBackgroundMode();
     }
+    else if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9)
+    {   
+        camera.setCubeView(key - GLFW_KEY_0);
+    }
+    else if (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_KP_9)
+    {
+        camera.setCubeView(key - GLFW_KEY_KP_0);
+    }
+    else if (key == GLFW_KEY_P)
+    {
+        scale.save_to_file("test.png");
+    }
+    else if (key == GLFW_KEY_I)
+    {
+        cubeMap.bake(camera,screenMesh,iResolution);
+    }
     if (label_changed) 
         errorLabel->setPixelSize(fontSize);
         
-}
-
-/** Screen mesh **/
-
-static const GLfloat g_vertex_buffer_data[] = {
-    -1.0f, -1.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f,
-    1.0f, 1.0f, 0.0f,
-
-    -1.0f, -1.0f,0.0f,
-    1.0f, 1.0f, 0.0f,
-    1.0f,-1.0f,0.0f,
-};
-
-struct Mesh
-{
-    GLuint vao,vertexbuffer;
-
-    inline void bind() const { glBindVertexArray(vao); }
-    inline void draw() const
-    {
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(
-               0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-               3,                  // size
-               GL_FLOAT,           // type
-               GL_FALSE,           // normalized?
-               0,                  // stride
-               (void*)0            // array buffer offset
-        );
-        glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
-        glDisableVertexAttribArray(0);
-    }
-};
-
-Mesh createScreenMesh()
-{
-    GLuint vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-    GLuint vertexbuffer;
-    glGenBuffers(1, &vertexbuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-    return {vao, vertexbuffer};
 }
 
 // -1 Reload
@@ -225,14 +204,17 @@ int load_shader(const char* fragment_shader_path,ShaderWindow& shaderwindow,GLui
 
 int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID)
 {
+
     //Enable shader
     glUseProgram( programID );
+
     //Uniform initialization
     //Search for fixed uniforms 
     GLuint iTime = glGetUniformLocation(programID,"iTime");
     iResolution = glGetUniformLocation(programID,"iResolution");
     iMouse = glGetUniformLocation(programID,"iMouse");
     iZoom = glGetUniformLocation(programID,"iZoom");
+    camera.setUniformID(glGetUniformLocation(programID,"iCameraTransform"));
 
     //Needed to correct window resolution to same as uniform iResolution
     glViewport(0, 0, resolution[0], resolution[1]); 
@@ -241,7 +223,7 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
     glUniform2fv(iResolution,1,resolution);
     glUniform2fv(iMouse,1,mouse_position);
     glUniform1f(iZoom,zoom_level);
-
+    camera.update();
 
     //Search for texture channel uniforms and try to load the textures
     int idx = 0;
@@ -312,6 +294,7 @@ int main(int argc, char *argv[])
         cout << "iMouse(for mouse position) between [-0.5,0.5]" << endl;
         cout << "iChannel(for texture channel)" << endl;
         cout << "iZoom(for zoom level)" << endl;
+        cout << "iCameraTransform(for first person camera transform)" << endl;
 
         cout << endl << "Use mouse scroll to change iTime speed, press control to change between zoom and speed increment" << endl;
         return 0;
@@ -331,7 +314,7 @@ int main(int argc, char *argv[])
         .width = WIDTH,
         .height = HEIGHT,
         .no_decoration_flag = false,
-        .background = true,
+        .background = false,
         .windowSizeCallback = window_size_callback,
         .cursorPosCallback = cursor_position_callback,
         .scrollCallback = scroll_callback,
@@ -347,7 +330,7 @@ int main(int argc, char *argv[])
     }
 
     /**Create screen mesh**/
-    Mesh screenMesh = createScreenMesh();
+    screenMesh = Mesh::createScreenMesh();
 
     font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
     const char* fragment_shader_path = argc > base_index ? argv[base_index] : "fragment.glsl";

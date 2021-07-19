@@ -1,7 +1,11 @@
 #include "scale.hh"
 #include <iostream>
+#include <vector>
+#include <stb_image_write.hh>
+
 using namespace std;
 
+Scale::Scale() : Scale(1.0) { }
 Scale::Scale(float resizeFactor)
 {
     resize_factor = resizeFactor;
@@ -87,6 +91,10 @@ void Scale::dispose_framebuffer()
     glDeleteRenderbuffers(1, &depth);
 }
 
+void Scale::begin(GLuint shaderRes) {
+    begin(screen_width,screen_height,shaderRes);
+}
+
 void Scale::begin(int screenWidth, int screenHeight,GLuint shaderRes)
 {
     if (old_factor != resize_factor || fb == 0 || screenWidth != screen_width || screenHeight != screen_height) resize(screenWidth, screenHeight,shaderRes);
@@ -103,7 +111,8 @@ void Scale::begin(int screenWidth, int screenHeight,GLuint shaderRes)
 void Scale::end()
 {
     const float aspect = (float)screen_width/(float)screen_height;
-
+    
+    //Draw framebuffer to screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0,0, screen_width, screen_height);
 
@@ -118,5 +127,16 @@ void Scale::end()
                   GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
     glBindFramebuffer(GL_FRAMEBUFFER,0);
+
+}
+
+void Scale::save_to_file(const char* path)
+{
+    int width = get_render_width();
+    int height = get_render_height();
+
+    vector<uint8_t> buffer(width * height * 3);
+    glReadPixels(0,0,width,height,GL_RGB,GL_UNSIGNED_BYTE,buffer.data());
+    stbi_write_png(path,width,height,3,buffer.data(),width * 3);
 
 }

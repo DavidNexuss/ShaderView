@@ -1,3 +1,4 @@
+#pragma once
 #include "util.hh"
 
 class Scale
@@ -15,6 +16,7 @@ class Scale
     void resize(int screenWidth, int screenHeight,GLuint shaderRes);
 
     public:
+    Scale();
     Scale(float resize_factor);
     Scale(int screenWidth,int screenHeight,float resizeFactor,GLuint shaderRes = 0);
     ~Scale();
@@ -26,6 +28,9 @@ class Scale
     float get_resize_factor() const;
 
     void flush(GLuint shaderRes);
+    void begin(GLuint shaderRes);
     void begin(int screenWidth,int screenHeight,GLuint shaderRes);
     void end();
+
+    void save_to_file(const char* path);
 };

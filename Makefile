@@ -2,8 +2,9 @@ CC=g++
 OPTS=-I src -I thirdparty -I /usr/include/freetype2
 LOPTS=-lGL -lglfw -lGLEW -lpthread -lfreetype
 RESOURCES = mono.ttf
-MODULES=main.o window.o util.o init.o reload.o scale.o \
+MODULES=main.o window.o util.o init.o reload.o scale.o mesh.o cubemap.o \
 		thirdparty/stb_image.o \
+		thirdparty/stb_image_write.o \
 		thirdparty/FontAtlas.o \
 		thirdparty/FTLabel.o \
 		thirdparty/GLFont.o \
