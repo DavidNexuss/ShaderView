@@ -6,6 +6,8 @@
 #include "init.hh"
 #include "main.hh"
 #include "scale.hh"
+#include "native.hh"
+#include "window.hh"
 
 #ifndef __MINGW32__
 #include "reload.hh"
@@ -41,6 +43,7 @@ bool errored = false;
 bool reschanged = false;
 
 Scale scale(1.0);
+ShaderWindow mainWindow;
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
     reschanged = true;
@@ -111,6 +114,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         }else 
         scale.set_resize_factor(scale.get_resize_factor() - 0.05);
     }
+    else if (key == GLFW_KEY_R)
+    {
+       // mainWindow.toggleBackgroundMode();
+    }
     if (label_changed) 
         errorLabel->setPixelSize(fontSize);
         
@@ -135,8 +142,6 @@ struct Mesh
     inline void bind() const { glBindVertexArray(vao); }
     inline void draw() const
     {
-        //glBindVertexArray(vertexbuffer);
-        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(
                0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -165,7 +170,7 @@ Mesh createScreenMesh()
 
 // -1 Reload
 // 0 Quit
-int load_shader(const char* fragment_shader_path,GLFWwindow* window,GLuint& programID)
+int load_shader(const char* fragment_shader_path,ShaderWindow& shaderwindow,GLuint& programID)
 {
     char* buffer = nullptr;
     programID = LoadShaders(fragment_shader_path,buffer);
@@ -192,8 +197,10 @@ int load_shader(const char* fragment_shader_path,GLFWwindow* window,GLuint& prog
         errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
         errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
         errored = true;
+        GLFWwindow* window = shaderwindow.native();
         do
         {
+            window = shaderwindow.native();
             glClear(GL_COLOR_BUFFER_BIT);
             errorLabel->render();
             glfwSwapBuffers(window);
@@ -216,7 +223,7 @@ int load_shader(const char* fragment_shader_path,GLFWwindow* window,GLuint& prog
     return 0;
 }
 
-int draw_loop(GLFWwindow* window,const Mesh& screenMesh,GLuint programID)
+int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID)
 {
     //Enable shader
     glUseProgram( programID );
@@ -257,8 +264,10 @@ int draw_loop(GLFWwindow* window,const Mesh& screenMesh,GLuint programID)
     }
 
     scale.flush(iResolution);
+    GLFWwindow* window = shaderwindow.native();
     do{
 
+        window = shaderwindow.native();
         glUniform1f(iTime,g_time);
         glUniform1f(iZoom,current_zoom_level);
 
@@ -285,6 +294,7 @@ int draw_loop(GLFWwindow* window,const Mesh& screenMesh,GLuint programID)
     return 0;
 
 }
+
 int main(int argc, char *argv[])
 {
     int base_index = 1;
@@ -314,26 +324,27 @@ int main(int argc, char *argv[])
         base_index++;
     }
 
-    GLFWwindow* window;
-    int width = WIDTH, height = HEIGHT;
-
-    //Initialize every 
-    if (initialize_GLFW() or initialize_window(window,width,height,no_decoration_flag) or initialize_GLEW(window))
-    {
-        cerr << "Failed to initialize GLFW" << endl;
-        return 1;
-    }
-
-    initialize_keys(window);
+    initialize_GLFW();
     
-    /**Set callbacks **/
-    glfwSetWindowSizeCallback(window,window_size_callback);
-    glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetKeyCallback(window, key_callback);
+    mainWindow = ShaderWindow({
+        .name = "ShaderView",
+        .width = WIDTH,
+        .height = HEIGHT,
+        .no_decoration_flag = false,
+        .background = true,
+        .windowSizeCallback = window_size_callback,
+        .cursorPosCallback = cursor_position_callback,
+        .scrollCallback = scroll_callback,
+        .keyCallback = key_callback
+    });
 
-    /**Init window size**/
-    window_size_callback(window,width,height);
+    mainWindow.create();
+    if(argc > 2)
+    {
+        unsigned long parent = stoul(argv[2]);
+        std::cerr << "Reparenting to: " << parent << std::endl;
+        reparentWindow(mainWindow.native(),parent);
+    }
 
     /**Create screen mesh**/
     Mesh screenMesh = createScreenMesh();
@@ -349,11 +360,11 @@ int main(int argc, char *argv[])
     while(exit_code == 2)
     {
         GLuint programID;
-        while((exit_code = load_shader(fragment_shader_path,window,programID))) 
+        while((exit_code = load_shader(fragment_shader_path,mainWindow,programID))) 
         {
             if (exit_code == 2) break;
         }
-        exit_code = draw_loop(window,screenMesh,programID);
+        exit_code = draw_loop(mainWindow,screenMesh,programID);
         glDeleteProgram(programID);
     }
     return exit_code;

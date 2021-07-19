@@ -26,6 +26,7 @@ int initialize_window(GLFWwindow* & window,int width,int height,bool no_decorati
     
     // Open a window and create its OpenGL context
     window = glfwCreateWindow( width, height, "Shader Viewer", NULL, NULL);
+    glfwWindowHint(GLFW_RESIZABLE,false);
     if( window == NULL ){
         cerr << "Failed to open GLFW window." << endl;
         return 1;
@@ -35,13 +36,19 @@ int initialize_window(GLFWwindow* & window,int width,int height,bool no_decorati
 }
 
 
+bool glewInitialized = false;
 int initialize_GLEW(GLFWwindow* window)
 {
     glfwMakeContextCurrent(window); // Initialize GLEW
-    glewExperimental=true; // Needed in core profile
-    if (glewInit() != GLEW_OK) {
-        cerr << "Failed to initialize GLEW" << endl;
-        return 1;
+    
+    if(!glewInitialized)
+    {
+        glewExperimental=true; // Needed in core profile
+        if (glewInit() != GLEW_OK) {
+            cerr << "Failed to initialize GLEW" << endl;
+            return 1;
+        }
+        glewInitialized = true;
     }
 
     return 0;

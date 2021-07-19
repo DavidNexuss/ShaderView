@@ -1,15 +1,23 @@
 CC=g++
-OPTS=-I thirdparty -I /usr/include/freetype2
+OPTS=-I src -I thirdparty -I /usr/include/freetype2
 LOPTS=-lGL -lglfw -lGLEW -lpthread -lfreetype
-MODULES=main.o util.o init.o reload.o scale.o \
+RESOURCES = mono.ttf
+MODULES=main.o window.o util.o init.o reload.o scale.o \
 		thirdparty/stb_image.o \
 		thirdparty/FontAtlas.o \
 		thirdparty/FTLabel.o \
 		thirdparty/GLFont.o \
 		thirdparty/GLUtils.o
-WINMODULES=main.o util.o init.o thirdparty/stb_image.o thirdparty/FontAtlas.o thirdparty/FTLabel.o thirdparty/GLFont.o thirdparty/GLUtils.o thirdparty/glew.o 
+WINMODULES=main.o window.o util.o init.o thirdparty/stb_image.o thirdparty/FontAtlas.o thirdparty/FTLabel.o thirdparty/GLFont.o thirdparty/GLUtils.o thirdparty/glew.o 
 
-shaderview: $(MODULES) mono.ttf
+X11 = $(MODULES) x11/reparent.o
+
+all: shaderview
+
+shaderview_x11: $(X11) $(RESOURCES)
+	$(CC) -o $@ $(OPTS) $(LOPTS) -lX11 $(X11)
+
+shaderview: $(MODULES) $(RESOURCES)
 	$(CC) -o $@ $(OPTS) $(LOPTS) $(MODULES)
 
 shaderview.exe: CC=x86_64-w64-mingw32-g++
@@ -23,7 +31,7 @@ release: OPTS+=-O2
 release: shaderview
 
 debug: OPTS+=-g
-debug: shaderview
+debug: shaderview_x11
 
 install: release
 	cp -f shaderview /bin/
@@ -32,8 +40,11 @@ install: release
 %.o : src/%.cc
 	$(CC) -c $^ $(OPTS) -o $@
 
+x11/%.o : src/x11/%.cc
+	$(CC) -c $^ $(OPTS) -o $@
+
 thirdparty/%.o : thirdparty/%.cc
 	$(CC) -c $^ $(OPTS) -o $@
 
 clean:
-	rm -f *.o thirdparty/*.o
+	rm -f *.o thirdparty/*.o x11/*.o
