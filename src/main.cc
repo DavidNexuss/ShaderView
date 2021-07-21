@@ -11,6 +11,7 @@
 #include "camera.hh"
 #include "mesh.hh"
 #include "cubemap.hh"
+#include "profile.hh"
 
 #ifndef __MINGW32__
 #include "reload.hh"
@@ -22,21 +23,12 @@ const int WIDTH = 800;
 const int HEIGHT = 450;
 const float SCROLL_FACTOR = 0.05f;
 
-float g_time = 0.0f;
 float delta = 0.01f;
 
 float zoom_level = 1.0f;
-float current_zoom_level = 1.0f;
 
 bool reload_shader = false;
 bool zoom = false;
-/*** Input callbacks ***/
-
-GLuint iResolution;
-GLuint iZoom;
-
-float resolution[2];
-float mouse_position[2];
 
 shared_ptr<GLFont> font;
 unique_ptr<FTLabel> errorLabel = nullptr;
@@ -53,27 +45,28 @@ CubeMap cubeMap(4096);
 
 void window_size_callback(GLFWwindow* window,int width,int height)
 {
-    reschanged = true;
-    resolution[0] = width;
-    resolution[1] = height;
+    glViewport(0,0, width, height);
 
-    glViewport(0,0, resolution[0], resolution[1]);
-    glUniform2fv(iResolution,1,resolution);
+    ProfileManager::currentProfile.resolution = glm::vec2(width, height);
+    ProfileManager::currentProfile.flushResolution();
+
+    reschanged = true;
 
     if (errorLabel != nullptr)
     {
         errorLabel->setWindowSize(width, height);
-        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+        errorLabel->setSize(width - 20, height - 20);
     }
 }
 
-GLuint iMouse;
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    mouse_position[0] = xpos / resolution[0] - 0.5f;
-    mouse_position[1] = ypos / resolution[1] - 0.5f;
-    glUniform2fv(iMouse,1,mouse_position);
-    camera.inputDirection(mouse_position[0],mouse_position[1]);
+    const glm::vec2& resolution = ProfileManager::currentProfile.resolution;
+    glm::vec2 mouse = glm::vec2(xpos / resolution[0] - 0.5f,ypos / resolution[1] - 0.5f);
+    ProfileManager::currentProfile.mouse = mouse;
+    ProfileManager::currentProfile.flushMouse();
+
+    camera.inputDirection(mouse[0],mouse[1]);
 
 }
 
@@ -140,7 +133,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
     else if (key == GLFW_KEY_I)
     {
-        cubeMap.bake(camera,screenMesh,iResolution);
+        cubeMap.bake(camera,screenMesh,ProfileManager::currentProfile.iResolution);
     }
     if (label_changed) 
         errorLabel->setPixelSize(fontSize);
@@ -157,6 +150,8 @@ int load_shader(const char* fragment_shader_path,ShaderWindow& shaderwindow,GLui
     {
         cerr << "Error loading shaders." << endl;
         cerr << buffer << endl;
+
+        const glm::vec2& resolution = ProfileManager::currentProfile.resolution;
 
         errorLabel = unique_ptr<FTLabel>(new FTLabel(
           font,
@@ -205,27 +200,15 @@ int load_shader(const char* fragment_shader_path,ShaderWindow& shaderwindow,GLui
 int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID)
 {
 
-    //Enable shader
     glUseProgram( programID );
 
-    //Uniform initialization
-    //Search for fixed uniforms 
-    GLuint iTime = glGetUniformLocation(programID,"iTime");
-    iResolution = glGetUniformLocation(programID,"iResolution");
-    iMouse = glGetUniformLocation(programID,"iMouse");
-    iZoom = glGetUniformLocation(programID,"iZoom");
-    camera.setUniformID(glGetUniformLocation(programID,"iCameraTransform"));
+    ProfileManager::currentProfile.loadUniforms(programID);
+    ProfileManager::currentProfile.setViewport(); 
+    ProfileManager::currentProfile.flushUniforms();
 
-    //Needed to correct window resolution to same as uniform iResolution
-    glViewport(0, 0, resolution[0], resolution[1]); 
-    
-    //Uniform set
-    glUniform2fv(iResolution,1,resolution);
-    glUniform2fv(iMouse,1,mouse_position);
-    glUniform1f(iZoom,zoom_level);
+    camera.setUniformID(ProfileManager::currentProfile.iCameraTransform);
     camera.update();
 
-    //Search for texture channel uniforms and try to load the textures
     int idx = 0;
     int texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
 
@@ -245,30 +228,31 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
         texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
     }
 
-    scale.flush(iResolution);
+    scale.flush(ProfileManager::currentProfile.iResolution);
     GLFWwindow* window = shaderwindow.native();
     do{
 
         window = shaderwindow.native();
-        glUniform1f(iTime,g_time);
-        glUniform1f(iZoom,current_zoom_level);
+        ProfileManager::currentProfile.flushTime();
+        ProfileManager::currentProfile.flushZoom();
 
-        scale.begin(resolution[0],resolution[1],iResolution);
+        scale.begin(ProfileManager::currentProfile.resolution[0],ProfileManager::currentProfile.resolution[1],ProfileManager::currentProfile.iResolution);
         screenMesh.draw();
         scale.end();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        g_time += delta;
-        if (reload_shader)
-        {
+        ProfileManager::currentProfile.time += delta;
+        ProfileManager::currentProfile.zoom += (zoom_level - ProfileManager::currentProfile.zoom) * 0.1f;
+
+
+        if (reload_shader) {
             reload_shader = false;
             scale.dispose_framebuffer();
             return 2;
         }
 
-        current_zoom_level += (zoom_level - current_zoom_level) * 0.1f;
     } // Check if the ESC key was pressed or the window was closed
     while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
            glfwWindowShouldClose(window) == 0 );
