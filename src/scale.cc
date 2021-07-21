@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <stb_image_write.hh>
+#include <thread>
 
 using namespace std;
 
@@ -61,13 +62,16 @@ void Scale::initialize_framebuffer()
 
     glBindFramebuffer(GL_FRAMEBUFFER, fb);
 
+    fbo_width = get_render_width();
+    fbo_height = get_render_height();
+
     glBindTexture(GL_TEXTURE_2D, color);
     glTexImage2D(   GL_TEXTURE_2D, 
             0, 
-            GL_RGBA, 
-            get_render_width(), get_render_height(),
+            GL_RGB, 
+            fbo_width, fbo_height,
             0, 
-            GL_RGBA, 
+            GL_RGB, 
             GL_UNSIGNED_BYTE, 
             NULL);
 
@@ -130,13 +134,17 @@ void Scale::end()
 
 }
 
-void Scale::save_to_file(const char* path)
+void Scale::save_to_file(const std::string& path)
 {
-    int width = get_render_width();
-    int height = get_render_height();
+    int width = fbo_width;
+    int height = fbo_height;
 
-    vector<uint8_t> buffer(width * height * 3);
-    glReadPixels(0,0,width,height,GL_RGB,GL_UNSIGNED_BYTE,buffer.data());
-    stbi_write_png(path,width,height,3,buffer.data(),width * 3);
-
+    uint8_t* buffer = new uint8_t[width * height * 3];
+    glReadPixels(0,0,width,height,GL_RGB,GL_UNSIGNED_BYTE,buffer);
+    
+    std::thread write([=](){
+        stbi_write_png(path.c_str(),width,height,3,buffer,width * 3);
+        delete[] buffer;
+    });
+    write.detach();
 }

@@ -134,6 +134,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     else if (key == GLFW_KEY_I)
     {
         cubeMap.bake(camera,screenMesh,ProfileManager::currentProfile.iResolution);
+        ProfileManager::currentProfile.flushUniforms();
+        ProfileManager::currentProfile.setViewport();
     }
     if (label_changed) 
         errorLabel->setPixelSize(fontSize);

@@ -1,5 +1,6 @@
 #pragma once
 #include "util.hh"
+#include <string>
 
 class Scale
 {
@@ -11,6 +12,9 @@ class Scale
     float resize_factor;
     float old_factor;
 
+    int fbo_width;
+    int fbo_height;
+    
     void initialize_framebuffer();
 
     void resize(int screenWidth, int screenHeight,GLuint shaderRes);
@@ -32,5 +36,5 @@ class Scale
     void begin(int screenWidth,int screenHeight,GLuint shaderRes);
     void end();
 
-    void save_to_file(const char* path);
+    void save_to_file(const std::string& path);
 };
