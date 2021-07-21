@@ -9,7 +9,7 @@ struct Camera
     GLuint cameraTransformID;
     glm::mat4 cameraTransform;
 
-    double x,y;
+    double x,y,z;
 
     Camera() {
         cameraTransformID = -1;
@@ -20,10 +20,11 @@ struct Camera
         cameraTransformID = uniformID;
     }
 
-    inline void inputDirection(double x,double y) {
+    inline void inputDirection(double x,double y,double z = 0.0) {
         if(cameraTransformID < 0) return;
         this->x = x;
         this->y = y;
+        this->z = z;
 
         compute();
         update();
@@ -32,8 +33,11 @@ struct Camera
     inline void compute()
     {
         cameraTransform = glm::mat4(1.0f);
+        cameraTransform = glm::rotate<float>(cameraTransform,z * M_PI * 2,glm::vec3(0,0,1));
         cameraTransform = glm::rotate<float>(cameraTransform,x * M_PI * 2,glm::vec3(0,1,0));
-        cameraTransform = glm::rotate<float>(cameraTransform,y * M_PI * 2,glm::vec3(0,0,1));
+        cameraTransform = glm::rotate<float>(cameraTransform,y * M_PI * 2,glm::vec3(1,0,0));
+
+
 
     }
     inline void update() {
