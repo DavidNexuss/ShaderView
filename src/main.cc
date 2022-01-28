@@ -230,7 +230,7 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
         texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
     }
 
-    scale.flush(ProfileManager::currentProfile.iResolution);
+    //scale.flush(ProfileManager::currentProfile.iResolution);
     GLFWwindow* window = shaderwindow.native();
     do{
 
@@ -238,9 +238,9 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
         ProfileManager::currentProfile.flushTime();
         ProfileManager::currentProfile.flushZoom();
 
-        scale.begin(ProfileManager::currentProfile.resolution[0],ProfileManager::currentProfile.resolution[1],ProfileManager::currentProfile.iResolution);
+     //   scale.begin(ProfileManager::currentProfile.resolution[0],ProfileManager::currentProfile.resolution[1],ProfileManager::currentProfile.iResolution);
         screenMesh.draw();
-        scale.end();
+     //   scale.end();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -251,13 +251,13 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
 
         if (reload_shader) {
             reload_shader = false;
-            scale.dispose_framebuffer();
+      //      scale.dispose_framebuffer();
             return 2;
         }
 
-    } // Check if the ESC key was pressed or the window was closed
-    while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-           glfwWindowShouldClose(window) == 0 );
+    }
+
+    while( glfwWindowShouldClose(window) == 0 );
 
     return 0;
 
