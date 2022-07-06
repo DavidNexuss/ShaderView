@@ -33,12 +33,9 @@ struct Camera
     inline void compute()
     {
         cameraTransform = glm::mat4(1.0f);
-        cameraTransform = glm::rotate<float>(cameraTransform,z * M_PI * 2,glm::vec3(0,0,1));
+//        cameraTransform = glm::rotate<float>(cameraTransform,z * M_PI * 2,glm::vec3(0,0,1));
         cameraTransform = glm::rotate<float>(cameraTransform,x * M_PI * 2,glm::vec3(0,1,0));
         cameraTransform = glm::rotate<float>(cameraTransform,y * M_PI * 2,glm::vec3(1,0,0));
-
-
-
     }
     inline void update() {
         glUniformMatrix4fv(cameraTransformID,1,false,&cameraTransform[0][0]);

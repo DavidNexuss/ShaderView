@@ -142,66 +142,85 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         
 }
 
-// -1 Reload
-// 0 Quit
+
+void displayError(ShaderWindow& shaderwindow,char* buffer,bool* stopFlag)
+{
+    const glm::vec2& resolution = ProfileManager::currentProfile.resolution;
+    
+    errorLabel = unique_ptr<FTLabel>(new FTLabel(
+      font,
+      buffer,
+      20,
+      20,
+      resolution[0],
+      resolution[1],
+      resolution[0],
+      resolution[1]
+    ));
+    
+    errorLabel->setPosition(20, 20);
+    errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
+    errorLabel->setPixelSize(fontSize);
+    errorLabel->setIndentation(50);
+    errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
+    errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
+    errored = true;
+    GLFWwindow* window = shaderwindow.native();
+    do
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+        errorLabel->render();
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+    while( glfwWindowShouldClose(window) == 0 && ! *stopFlag);
+    *stopFlag = false;
+    errored = false;
+}
+
 int load_shader(const char* fragment_shader_path,ShaderWindow& shaderwindow,GLuint& programID)
 {
     char* buffer = nullptr;
+    int retCode = 0;
+
     programID = LoadShaders(fragment_shader_path,buffer);
-    if (programID == 0)
-    {
-        cerr << "Error loading shaders." << endl;
-        cerr << buffer << endl;
 
-        const glm::vec2& resolution = ProfileManager::currentProfile.resolution;
+    if (programID == 0) {
+        cerr << "Error loading shaders." << endl << buffer << endl;
 
-        errorLabel = unique_ptr<FTLabel>(new FTLabel(
-          font,
-          buffer,
-          20,
-          20,
-          resolution[0],
-          resolution[1],
-          resolution[0],
-          resolution[1]
-        ));
-
-        errorLabel->setPosition(20, 20);
-        errorLabel->setSize(resolution[0] - 20, resolution[1] - 20);
-        errorLabel->setPixelSize(fontSize);
-        errorLabel->setIndentation(50);
-        errorLabel->setAlignment(FTLabel::FontFlags::LeftAligned);
-        errorLabel->setColor(1.0, 1.0, 1.0, 1.0);
-        errored = true;
-        GLFWwindow* window = shaderwindow.native();
-        do
-        {
-            window = shaderwindow.native();
-            glClear(GL_COLOR_BUFFER_BIT);
-            errorLabel->render();
-            glfwSwapBuffers(window);
-            glfwPollEvents();
-            if (reload_shader)
-            {
-                reload_shader = false;
-                delete buffer;
-                errored = false;
-                return 1;
-            }
-        }
-        while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-           glfwWindowShouldClose(window) == 0 );
-        
-        delete buffer;
-        errored = false;
-        return 2;
+        displayError(shaderwindow,buffer,&reload_shader);
+        retCode = 1;
     }
-    return 0;
+
+    if(buffer != nullptr)
+        delete[] buffer;
+
+    return retCode;
 }
 
+std::vector<std::string> fileNames;
+std::vector<GLuint> textures;
+
+void configureTextures(GLuint programID) { 
+    int idx = 0;
+    int texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
+    glDeleteTextures(textures.size(), textures.data());
+    textures.clear();
+
+    while(texture_slot_id != -1) {
+        GLuint texture = loadTexture(fileNames[idx].c_str());
+
+        if (texture <= 0) continue;
+        
+        glUniform1i(texture_slot_id,texture);
+        idx++;
+        texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
+        textures.push_back(texture);
+    }
+}
 int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID)
 {
-
+    cerr << "Entering draw loop with shader " << programID << endl;
     glUseProgram( programID );
 
     ProfileManager::currentProfile.loadUniforms(programID);
@@ -211,30 +230,12 @@ int draw_loop(ShaderWindow& shaderwindow,const Mesh& screenMesh,GLuint programID
     camera.setUniformID(ProfileManager::currentProfile.iCameraTransform);
     camera.update();
 
-    int idx = 0;
-    int texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
-
-    while(texture_slot_id != -1)
-    {
-        string file_path = "iChannel" + std::to_string(idx) + ".png";
-        GLuint texture = loadTexture(file_path.c_str());
-
-        if (texture == 0)
-        {
-            cerr << "Error loading required texture " << texture_slot_id << endl;
-            return 1;
-        }
-        
-        glUniform1i(texture_slot_id,texture);
-        idx++;
-        texture_slot_id = glGetUniformLocation(programID,string("iChannel" + std::to_string(idx)).c_str() );
-    }
-
     //scale.flush(ProfileManager::currentProfile.iResolution);
     GLFWwindow* window = shaderwindow.native();
+    screenMesh.bind();
     do{
+        configureTextures(programID);
 
-        window = shaderwindow.native();
         ProfileManager::currentProfile.flushTime();
         ProfileManager::currentProfile.flushZoom();
 
@@ -286,6 +287,10 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    for(int i = 2; i < argc; i++) { 
+        fileNames.push_back(string(argv[i]));
+    }
+
     bool no_decoration_flag = false;
     if (argc > base_index and string(argv[base_index]) == "--nodec")
     {
@@ -308,12 +313,15 @@ int main(int argc, char *argv[])
     });
 
     mainWindow.create();
-    if(argc > 2)
-    {
+
+    //Reparent code
+    /*
+    if(argc > 2) {
         unsigned long parent = stoul(argv[2]);
         std::cerr << "Reparenting to: " << parent << std::endl;
         reparentWindow(mainWindow.native(),parent);
-    }
+    } */
+
 
     /**Create screen mesh**/
     screenMesh = Mesh::createScreenMesh();

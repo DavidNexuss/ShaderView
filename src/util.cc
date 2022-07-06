@@ -99,29 +99,31 @@ GLuint LoadShaders(const char * fragment_file_path,char* &errorBuffer)     //Wil
 	return ProgramID;
 }
 
-GLuint loadTexture(const char* texture_file_path)   //Returns 0 if there is an with the texture loading
-{
-    int width, height,nrChannels;
-    unsigned char* data = stbi_load(texture_file_path, &width, &height, &nrChannels, 0);
+#include "basicRead.hh"
 
-    if (data == nullptr)
-    {
-        cerr << "Error loading texture file from disk: " << texture_file_path << endl;
-        return 0;
+GLuint loadTexture(const char* filename)   //Returns 0 if there is an with the texture loading
+{
+    std::vector<uint8_t> buffer = Nutils::readFromFile(filename);
+    if(buffer.size() == 0) { 
+        std::cerr << "Empty buffer" << std::endl;
     }
+    else { 
+        std::cerr << "Reading with " << buffer.size() << std::endl;
+    }
+
+    int width, height,nrChannels;
+    unsigned char* data = stbi_load_from_memory(buffer.data(),buffer.size(), &width, &height, &nrChannels, 0);
 
     GLuint texture;
     glGenTextures(1, &texture);     //will return 0 if there is an error with texture generation
 
-    if (texture != 0)
-    {
+    if (texture != 0) {
         glActiveTexture(GL_TEXTURE0 + texture);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height,0,GL_RGB,GL_UNSIGNED_BYTE, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, nrChannels == 3 ? GL_RGB : GL_RGBA, width, height,0,nrChannels == 3 ? GL_RGB : GL_RGBA,GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     }
-    else
-    {
+    else {
         cerr << "Failed to create OpenGL texture" << endl;
     }
 
