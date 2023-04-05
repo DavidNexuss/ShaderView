@@ -9,6 +9,8 @@ One shader renderered with this program.
 *Made with some code from the website http://www.opengl-tutorial.org*
 
 ## Build instructions
+This is just a Cmake project with all required dependencies already included in libs folder, so just generate the Makefile with cmake like you would normally do, alternatively if you feel a bit lazy..
+
 Just run:
 
 ``` sh

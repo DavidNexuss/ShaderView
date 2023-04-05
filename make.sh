@@ -1,6 +1,6 @@
 #!/bin/sh
 cmake -S . -B build
 cd build
-make -j4
+make -j$(nproc)
 cd ..
 cp build/shaderview .
