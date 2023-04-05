@@ -1,3 +1,4 @@
+#ifdef X11_BACKEND
 #include <native.hh>
 #include <cstring>
 #define GLFW_EXPOSE_NATIVE_X11
@@ -58,3 +59,4 @@ void reparentWindow(GLFWwindow* glfw_window,Window parent)
     Window window = glfwGetX11Window(glfw_window);
 	XReparentWindow(display,window,parent,0,0);
 }
+#endif

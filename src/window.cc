@@ -53,7 +53,7 @@ void ShaderWindow::create()
     initialize_GLEW(window);
     if (descriptor.background)
     {
-        backgroundWindow(window);
+        //backgroundWindow(window);
     }
 
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);

@@ -1,7 +1,7 @@
 #pragma once 
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
-
+#include "util.hh"
 
 constexpr int cameraDirections[6] = {5,4,6,8,2,1};
 struct Camera

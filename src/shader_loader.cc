@@ -1,5 +1,5 @@
 #include "shader_loader.hh"
-
+ /*
 ShaderLoader::ShaderLoader(const char* fontPath)
 {
     fontSize = 13;
@@ -79,4 +79,4 @@ void ShaderLoader::update_font_size(int newSize)
 int ShaderLoader::get_font_size() const
 {
     return fontSize;
-}
+} */

@@ -6,13 +6,19 @@ it will pass to the shader some uniforms and textures.
 ![What is this](showcase.png)
 One shader renderered with this program.
 
-### Made with some code from the website http://www.opengl-tutorial.org
+*Made with some code from the website http://www.opengl-tutorial.org*
 
-### Future features
-Autogenerate uniform stubs in glsl shader to guarantee compatibility with ShaderToy shaders
+## Build instructions
+Just run:
 
-Add FPS counter and window size label
+``` sh
+./make.sh
+```
 
-### Compiling
-Compiles using make and requires opengl glew and glm installed
-Requires ttf called mono.ttf int the build directory
+and if everything goes right, you should see a shaderview executable in the project root
+
+Then run:
+
+``` sh
+./shaderview shaders/someshader.glsl
+```
