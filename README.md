@@ -3,7 +3,7 @@
 ShaderViewer is a simple utility to render glsl shader with the minimum overhead and setup posible,
 it will pass to the shader some uniforms and textures.
 
-![What is this](showcase.png)
+![What is this](showcase/showcase.png)
 One shader renderered with this program.
 
 *Made with some code from the website http://www.opengl-tutorial.org*
