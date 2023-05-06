@@ -10,10 +10,12 @@ struct Profile
     GLuint iZoom;
     GLuint iCameraTransform;
 
+    glm::vec3 pos;
     glm::vec2 resolution;
     glm::vec2 mouse;
     glm::mat4 cameraTransform = glm::mat4(1.0f);
     float time;
+    bool reset;
     float zoom;
 
 
