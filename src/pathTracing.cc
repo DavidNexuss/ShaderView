@@ -25,8 +25,8 @@ SceneDesc defaultDesc() {
   sceneDesc.maxIndexBuffer      = 10;
   sceneDesc.frameBufferWidth    = 1920 / 2;
   sceneDesc.frameBufferHeight   = 1080 / 2;
-  sceneDesc.numThreads          = 1;
-  sceneDesc.iterationsPerThread = 2;
+  sceneDesc.numThreads          = 2;
+  sceneDesc.iterationsPerThread = 8;
   sceneDesc.rayDepth            = 4;
   sceneDesc.framesInFlight      = 1;
   sceneDesc.frameDelta          = 0.1;
