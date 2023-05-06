@@ -5,6 +5,7 @@
 #include "mesh.hh"
 #include "native.hh"
 #include "profile.hh"
+#include "pathTracing.hh"
 #include "scale.hh"
 #include "window.hh"
 #include <FTLabel.h>
@@ -40,7 +41,7 @@ bool reschanged = false;
 Scale scale(1.0);
 ShaderWindow mainWindow;
 Camera camera;
-Mesh screenMesh;
+TMesh screenMesh;
 CubeMap cubeMap(4096);
 
 void window_size_callback(GLFWwindow *window, int width, int height) {
@@ -189,7 +190,7 @@ void configureTextures(GLuint programID) {
     textures.push_back(texture);
   }
 }
-int draw_loop(ShaderWindow &shaderwindow, const Mesh &screenMesh,
+int draw_loop(ShaderWindow &shaderwindow, const TMesh &screenMesh,
               GLuint programID) {
   cerr << "Entering draw loop with shader " << programID << endl;
   glUseProgram(programID);
@@ -234,7 +235,8 @@ int draw_loop(ShaderWindow &shaderwindow, const Mesh &screenMesh,
   return 0;
 }
 
-int main(int argc, char *argv[]) {
+int helpMesage(int argc, char** argv) {
+
   int base_index = 1;
   if (argc > base_index and string(argv[base_index]) == "--help") {
     cout << "Usage: " << argv[0] << " [fragment_shader_path]" << endl;
@@ -263,8 +265,15 @@ int main(int argc, char *argv[]) {
          << "Use mouse scroll to change iTime speed, press control to change "
             "between zoom and speed increment"
          << endl;
-    return 0;
+    return 1;
   }
+
+  return 0;
+}
+int main(int argc, char *argv[]) {
+  int base_index = 1;
+
+  if(helpMesage(argc, argv)) return 0;
 
   for (int i = 2; i < argc; i++) {
     fileNames.push_back(string(argv[i]));
@@ -290,24 +299,30 @@ int main(int argc, char *argv[]) {
 
   mainWindow.create();
 
-  // Reparent code
-  /*
-  if(argc > 2) {
-      unsigned long parent = stoul(argv[2]);
-      std::cerr << "Reparenting to: " << parent << std::endl;
-      reparentWindow(mainWindow.native(),parent);
-  } */
 
   /**Create screen mesh**/
-  screenMesh = Mesh::createScreenMesh();
+  screenMesh = TMesh::createScreenMesh();
 
   font = shared_ptr<GLFont>(new GLFont("mono.ttf"));
-  const char *fragment_shader_path =
-      argc > base_index ? argv[base_index] : "fragment.glsl";
+
+
+  if(argc > base_index && string(argv[base_index]) == "--trace") {
+    pathTracingInit(argc, argv);
+    GLuint programID;
+    int exit_code = load_shader("path.glsl", mainWindow, programID);
+    pathTracingLoop(mainWindow, screenMesh, programID);
+    glDeleteProgram(programID);
+    return 0;
+  }
+
+
+  const char *fragment_shader_path = argc > base_index ? argv[base_index] : "fragment.glsl";
 
 #ifndef __MINGW32__
   InotifyHandler handler(fragment_shader_path); // Autoreload shaders
 #endif
+
+
 
   int exit_code = 2;
   while (exit_code == 2) {

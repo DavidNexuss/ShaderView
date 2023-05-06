@@ -1,7 +1,7 @@
 #pragma once
 #include "window.hh"
 
-struct Mesh
+struct TMesh
 {
     GLuint vao,vertexbuffer;
 
@@ -11,5 +11,5 @@ struct Mesh
         glDrawArrays(GL_TRIANGLES, 0, 6); // Starting from vertex 0; 3 vertices total -> 1 triangle
     }
 
-    static Mesh createScreenMesh();
+    static TMesh createScreenMesh();
 };

@@ -1,6 +1,6 @@
 #include "cubemap.hh"
 
-void CubeMap::bake(Camera camera,Mesh& mesh,GLuint shaderRes)
+void CubeMap::bake(Camera camera,TMesh& mesh,GLuint shaderRes)
 {
     for (int i = 0; i < 6; i++)
     {

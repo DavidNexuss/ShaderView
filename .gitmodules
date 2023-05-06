@@ -1,0 +1,3 @@
+[submodule "lib/cuda"]
+	path = lib/cuda
+	url = https://github.com/DavidNexuss/cuda

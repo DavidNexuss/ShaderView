@@ -16,5 +16,5 @@ struct CubeMap
         this->resolution = resolution;
     }
 
-    void bake(Camera camera,Mesh& mesh,GLuint shaderRes);
+    void bake(Camera camera,TMesh& mesh,GLuint shaderRes);
 };
