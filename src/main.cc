@@ -66,6 +66,7 @@ void cursor_position_callback(GLFWwindow *window, double xpos, double ypos) {
   ProfileManager::currentProfile.flushMouse();
 
   camera.inputDirection(mouse[0], mouse[1]);
+  ProfileManager::currentProfile.move = true;
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
@@ -81,6 +82,22 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
                   int mods) {
 
 
+
+  bool pressed = action == GLFW_PRESS || action == GLFW_REPEAT;
+  if(key == GLFW_KEY_W)
+    ProfileManager::currentProfile.pos.z = -0.01 * pressed;
+  if(key == GLFW_KEY_A)
+    ProfileManager::currentProfile.pos.x = -0.01 * pressed;
+  if(key == GLFW_KEY_C)
+    ProfileManager::currentProfile.pos.y = -0.01 * pressed;
+  if(key == GLFW_KEY_S)
+    ProfileManager::currentProfile.pos.z = 0.01 *  pressed;
+  if(key == GLFW_KEY_D)
+    ProfileManager::currentProfile.pos.x = 0.01 *  pressed;
+  if(key == GLFW_KEY_SPACE)
+    ProfileManager::currentProfile.pos.y = 0.01 *  pressed;
+
+  ProfileManager::currentProfile.move = pressed;
   if(key == GLFW_KEY_R) {
     ProfileManager::currentProfile.reset = action == GLFW_PRESS;
   }
@@ -123,15 +140,6 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
     ProfileManager::currentProfile.flushUniforms();
     ProfileManager::currentProfile.setViewport();
   }
-
-
-  ProfileManager::currentProfile.pos.z += -0.01 * (key == GLFW_KEY_W);
-  ProfileManager::currentProfile.pos.x += -0.01 * (key == GLFW_KEY_A);
-  ProfileManager::currentProfile.pos.y += -0.01 * (key == GLFW_KEY_C);
-
-  ProfileManager::currentProfile.pos.z += 0.01 * (key == GLFW_KEY_S);
-  ProfileManager::currentProfile.pos.x += 0.01 * (key == GLFW_KEY_D);
-  ProfileManager::currentProfile.pos.y += 0.01 * (key == GLFW_KEY_SPACE);
 
   if (label_changed)
     errorLabel->setPixelSize(fontSize);

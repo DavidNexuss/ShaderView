@@ -46,6 +46,7 @@ int pathTracingLoop(ShaderWindow &shaderwindow, const TMesh &screenMesh, GLuint 
   int index = 1;
   do {
 
+    if(ProfileManager::currentProfile.move) { index = 0; }
     glUniform1f(loc, (float)(index + 1));
     SceneInput host = sceneInputHost(&scene);
     Camera& cam = host.constants->camera;
@@ -54,13 +55,18 @@ int pathTracingLoop(ShaderWindow &shaderwindow, const TMesh &screenMesh, GLuint 
     cam.crossed   = make_float3(rotMatrix[0][0], rotMatrix[0][1], rotMatrix[0][2]);
     cam.up        = make_float3(rotMatrix[1][0], rotMatrix[1][1], rotMatrix[1][2]);
     cam.direction = make_float3(rotMatrix[2][0], rotMatrix[2][1], rotMatrix[2][2]);
-    cam.origin = make_float3(ProfileManager::currentProfile.pos.x, ProfileManager::currentProfile.pos.y, ProfileManager::currentProfile.pos.z);
+    glm::vec4 dir = rotMatrix * glm::vec4(ProfileManager::currentProfile.pos.x, ProfileManager::currentProfile.pos.y, ProfileManager::currentProfile.pos.z,1.0);
+    dir *= 5.0f;
+    dir.y *= -1.0f;
+    cam.origin = make_float3(cam.origin.x + dir.x, cam.origin.y + dir.y, cam.origin.z + dir.z);
     host.constants->clear = index == 0;
 
     sceneUploadObjects(&scene);
     sceneRun(&scene);
     sceneDownload(&scene);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, scene.desc.frameBufferWidth, scene.desc.frameBufferHeight, GL_RGB, GL_FLOAT, sceneGetFrame(&scene, 0));
+    index++;
+
     ProfileManager::currentProfile.loadUniforms(programID);
     ProfileManager::currentProfile.setViewport();
     ProfileManager::currentProfile.flushUniforms();
@@ -69,7 +75,6 @@ int pathTracingLoop(ShaderWindow &shaderwindow, const TMesh &screenMesh, GLuint 
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-    index++;
 
     if(ProfileManager::currentProfile.reset) { index = 0;}
   }

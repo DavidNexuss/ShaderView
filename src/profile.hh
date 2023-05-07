@@ -17,6 +17,7 @@ struct Profile
     float time;
     bool reset;
     float zoom;
+    bool move;
 
 
     void loadUniforms(GLuint program);
