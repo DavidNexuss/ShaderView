@@ -6,34 +6,13 @@
 
 extern "C" { 
 #include <scene.h>
-#include <examples/examples.h>
+#include "../lib/cuda/scripts/test1.c"
 }
 #include "profile.hh"
 #include "native.hh"
 
 
 static GLuint cudaTexture;
-
-SceneDesc defaultDesc() {
-
-  SceneDesc sceneDesc;
-  sceneDesc.maxMeshes           = 300;
-  sceneDesc.maxObjects          = 400;
-  sceneDesc.maxMaterials        = 300;
-  sceneDesc.maxTextures         = 10;
-  sceneDesc.maxVertexBuffer     = 10;
-  sceneDesc.maxIndexBuffer      = 10;
-  sceneDesc.frameBufferWidth    = 1920 / 2;
-  sceneDesc.frameBufferHeight   = 1080 / 2;
-  sceneDesc.numThreads          = 32;
-  sceneDesc.iterationsPerThread = 1;
-  sceneDesc.rayDepth            = 4;
-  sceneDesc.framesInFlight      = 1;
-  sceneDesc.frameDelta          = 0.1;
-  sceneDesc.fWriteClamped       = 1;
-  return sceneDesc;
-}
-
 
 Scene scene;
 int pathTracingLoop(ShaderWindow &shaderwindow, const TMesh &screenMesh, GLuint programID) { 
@@ -91,12 +70,16 @@ void pathTracingInit(int argc, char** argv) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   SceneDesc sceneDesc = defaultDesc();
+  sceneDesc.frameBufferWidth = 1280;
+  sceneDesc.frameBufferHeight = 720;
+  sceneDesc.numThreads = 1;
+  sceneDesc.iterationsPerThread = 1;
   scene = sceneCreate(sceneDesc);
-  scene2(&scene);
+  traceInit(&scene);
   sceneUpload(&scene);
 
   SceneInput inp = sceneInputHost(&scene);
-  scene2Loop(inp.constants);
+  traceLoop(inp.constants);
 
   sceneUploadObjects(&scene);
 
